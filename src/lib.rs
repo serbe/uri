@@ -1,5 +1,10 @@
-pub mod addr;
-pub mod authority;
-pub mod error;
-pub mod range;
-pub mod uri;
+pub use addr::Addr;
+pub use authority::Authority;
+pub use error::{Error, Result};
+pub use uri::Uri;
+
+mod addr;
+mod authority;
+mod error;
+mod range;
+mod uri;

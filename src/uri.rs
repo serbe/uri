@@ -10,33 +10,33 @@ use crate::authority::Authority;
 use crate::error::{Error, Result};
 use crate::range::{get_chunks, RangeUsize};
 
-pub trait IntoUri {
-    fn into_uri(self) -> Result<Uri>;
-}
+// pub trait IntoUri {
+//     fn into_uri(self) -> Result<Uri>;
+// }
 
-impl IntoUri for Uri {
-    fn into_uri(self) -> Result<Uri> {
-        Ok(self)
-    }
-}
+// impl IntoUri for Uri {
+//     fn into_uri(self) -> Result<Uri> {
+//         Ok(self)
+//     }
+// }
 
-impl<'a> IntoUri for &'a str {
-    fn into_uri(self) -> Result<Uri> {
-        self.parse()
-    }
-}
+// impl<'a> IntoUri for &'a str {
+//     fn into_uri(self) -> Result<Uri> {
+//         self.parse()
+//     }
+// }
 
-impl IntoUri for String {
-    fn into_uri(self) -> Result<Uri> {
-        self.parse()
-    }
-}
+// impl IntoUri for String {
+//     fn into_uri(self) -> Result<Uri> {
+//         self.parse()
+//     }
+// }
 
-impl IntoUri for &String {
-    fn into_uri(self) -> Result<Uri> {
-        self.parse()
-    }
-}
+// impl IntoUri for &String {
+//     fn into_uri(self) -> Result<Uri> {
+//         self.parse()
+//     }
+// }
 
 #[derive(Clone, PartialEq)]
 pub struct Uri {
@@ -177,10 +177,10 @@ impl Uri {
         }
     }
 
-    fn addr_port(&self) -> Vec<u8> {
-        let port = self.default_port();
-        vec![((port >> 8) & 0xff) as u8, (port & 0xff) as u8]
-    }
+    // fn addr_port(&self) -> Vec<u8> {
+    //     let port = self.default_port();
+    //     vec![((port >> 8) & 0xff) as u8, (port & 0xff) as u8]
+    // }
 
     // pub fn check_supported_proxy(self) -> Result<Self> {
     //     match self.scheme() {
@@ -296,19 +296,280 @@ mod tests {
     use crate::uri::Uri;
 
     #[test]
-    fn case_scheme() {
-        let uri = "hTtP://www.example.org".parse::<Uri>().unwrap();
-        assert_eq!(uri.scheme(), "http");
-    }
-
-    #[test]
-    fn case_uri() {
+    fn as_str_t1() {
         let uri = "hTtP://www.example.org".parse::<Uri>().unwrap();
         assert_eq!(uri.as_str(), "http://www.example.org");
     }
 
     #[test]
-    fn request_uri() {
+    fn scheme_t1() {
+        let uri = "hTtP://www.example.org".parse::<Uri>().unwrap();
+        assert_eq!(uri.scheme(), "http");
+    }
+
+    #[test]
+    fn scheme_t2() {
+        let uri = "http123s://www.example.org".parse::<Uri>().unwrap();
+        assert_eq!(uri.scheme(), "http123s");
+    }
+
+    #[test]
+    fn user_info_t1() {
+        let uri = "ftp://webmaster@www.example.org/".parse::<Uri>().unwrap();
+        assert_eq!(uri.user_info(), Some("webmaster"));
+    }
+
+    #[test]
+    fn user_info_t2() {
+        let uri = "ftp://john%20doe@www.example.org/".parse::<Uri>().unwrap();
+        assert_eq!(uri.user_info(), Some("john%20doe"));
+    }
+
+    #[test]
+    fn user_info_t3() {
+        let uri = "http://%3Fam:pa%3Fsword@google.com".parse::<Uri>().unwrap();
+        assert_eq!(uri.user_info(), Some("%3Fam:pa%3Fsword"));
+        // assert_eq!(s.decode_user(), Some("?am".to_owned()));
+        // assert_eq!(s.decode_password(), Some("pa?sword".to_owned()));
+    }
+
+    #[test]
+    fn host_t1() {
+        let uri = "http://www.example.org".parse::<Uri>().unwrap();
+        assert_eq!(uri.host(), "www.example.org");
+    }
+
+    #[test]
+    fn host_t2() {
+        let uri = "ftp://webmaster@www.example.org/".parse::<Uri>().unwrap();
+        assert_eq!(uri.host(), "www.example.org");
+    }
+
+    #[test]
+    fn host_t3() {
+        let uri = "http://%3Fam:pa%3Fsword@google.com".parse::<Uri>().unwrap();
+        assert_eq!(uri.host(), "google.com");
+    }
+
+    #[test]
+    fn host_t4() {
+        let uri = "http://192.168.0.1:8080/".parse::<Uri>().unwrap();
+        assert_eq!(uri.host(), "192.168.0.1");
+    }
+
+    #[test]
+    fn host_t5() {
+        let uri = "http://[fe80::1]:8080/".parse::<Uri>().unwrap();
+        assert_eq!(uri.host(), "[fe80::1]");
+    }
+
+    #[test]
+    fn host_t6() {
+        let uri = "mysql://a,b,c/bar".parse::<Uri>().unwrap();
+        assert_eq!(uri.host(), "a,b,c");
+    }
+
+    #[test]
+    fn host_t7() {
+        let uri = "scheme://!$&'()*+,;=hello!:23/path".parse::<Uri>().unwrap();
+        assert_eq!(uri.host(), "!$&'()*+,;=hello!");
+    }
+
+    #[test]
+    fn host_t8() {
+        let uri = "myscheme://authority<\"hi\">/foo".parse::<Uri>().unwrap();
+        assert_eq!(uri.host(), "authority<\"hi\">");
+    }
+
+    #[test]
+    fn host_t9() {
+        let uri = "http://hello.世界.com/foo".parse::<Uri>().unwrap();
+        assert_eq!(uri.host(), "hello.世界.com");
+    }
+
+    #[test]
+    fn host_header_t1() {
+        let uri = "http://www.example.org:8080".parse::<Uri>().unwrap();
+        assert_eq!(uri.host_header(), "www.example.org");
+    }
+
+    #[test]
+    fn host_header_t2() {
+        let uri = "http://www.example.org:443".parse::<Uri>().unwrap();
+        assert_eq!(uri.host_header(), "www.example.org:443");
+    }
+
+    #[test]
+    fn port_t1() {
+        let uri = "http://192.168.0.1:8080/".parse::<Uri>().unwrap();
+        assert_eq!(uri.port(), Some(8080));
+    }
+
+    #[test]
+    fn port_t2() {
+        let uri = "http://[fe80::1]:8080/".parse::<Uri>().unwrap();
+        assert_eq!(uri.port(), Some(8080));
+    }
+
+    #[test]
+    fn port_t3() {
+        let uri = "scheme://!$&'()*+,;=hello!:23/path".parse::<Uri>().unwrap();
+        assert_eq!(uri.port(), Some(23));
+    }
+
+    #[test]
+    fn default_port_t1() {
+        let uri = "http://www.example.org:443".parse::<Uri>().unwrap();
+        assert_eq!(uri.default_port(), 443);
+    }
+
+    #[test]
+    fn default_port_t2() {
+        let uri = "https://www.example.org".parse::<Uri>().unwrap();
+        assert_eq!(uri.default_port(), 443);
+    }
+
+    #[test]
+    fn path_t1() {
+        let uri = "http://www.example.org/".parse::<Uri>().unwrap();
+        assert_eq!(uri.path(), Some("/"));
+    }
+
+    #[test]
+    fn path_t2() {
+        let uri = "http://www.example.org/file%20one%26two"
+            .parse::<Uri>()
+            .unwrap();
+        assert_eq!(uri.path(), Some("/file%20one%26two"));
+        // assert_eq!(u.decode_path(), Some("/file one&two".to_owned()));
+    }
+
+    #[test]
+    fn path_t3() {
+        let uri = "ftp://john%20doe@www.example.org/".parse::<Uri>().unwrap();
+        assert_eq!(uri.user_info(), Some("john%20doe"));
+    }
+
+    #[test]
+    fn path_t4() {
+        let uri = "http://www.example.org/?".parse::<Uri>().unwrap();
+        assert_eq!(uri.path(), Some("/"));
+    }
+
+    #[test]
+    fn path_t5() {
+        let uri = "http://www.example.org/a%20b?q=c+d".parse::<Uri>().unwrap();
+        assert_eq!(uri.path(), Some("/a%20b"));
+    }
+
+    #[test]
+    fn path_t6() {
+        let uri = "http://rest.rsc.io/foo%2fbar/baz%2Fquux?alt=media"
+            .parse::<Uri>()
+            .unwrap();
+        assert_eq!(uri.path(), Some("/foo%2fbar/baz%2Fquux"));
+        // assert_eq!(s.decode_path(), Some("/foo/bar/baz/quux".to_owned()));
+    }
+
+    #[test]
+    fn path_t7() {
+        let uri = "mysql://a,b,c/bar".parse::<Uri>().unwrap();
+        assert_eq!(uri.path(), Some("/bar"));
+    }
+
+    #[test]
+    fn path_t8() {
+        let uri = "scheme://!$&'()*+,;=hello!:23/path".parse::<Uri>().unwrap();
+        assert_eq!(uri.path(), Some("/path"));
+    }
+
+    #[test]
+    fn path_t9() {
+        let uri = "http://host/!$&'()*+,;=:@[hello]".parse::<Uri>().unwrap();
+        assert_eq!(uri.path(), Some("/!$&'()*+,;=:@[hello]"));
+        // Rawu.path = Some("/!$&'()*+,;=:@[hello]");
+    }
+
+    #[test]
+    fn path_t10() {
+        let uri = "http://example.com/oid/[order_id]".parse::<Uri>().unwrap();
+        assert_eq!(uri.path(), Some("/oid/[order_id]"));
+        // Rawu.path = Some("/oid/[order_id]");
+    }
+
+    #[test]
+    fn path_t11() {
+        let uri = "http://example.com//foo".parse::<Uri>().unwrap();
+        assert_eq!(uri.path(), Some("//foo"));
+    }
+
+    #[test]
+    fn query_t1() {
+        let uri = "http://www.example.org/?".parse::<Uri>().unwrap();
+        assert_eq!(uri.query(), Some(""));
+    }
+
+    #[test]
+    fn query_t2() {
+        let uri = "http://www.example.org/?foo=bar?".parse::<Uri>().unwrap();
+        assert_eq!(uri.query(), Some("foo=bar?"));
+    }
+
+    #[test]
+    fn query_t3() {
+        let uri = "http://www.example.org/?q=rust+language"
+            .parse::<Uri>()
+            .unwrap();
+        assert_eq!(uri.query(), Some("q=rust+language"));
+    }
+
+    #[test]
+    fn query_t4() {
+        let uri = "http://www.example.org/?q=go%20language"
+            .parse::<Uri>()
+            .unwrap();
+        assert_eq!(uri.query(), Some("q=go%20language"));
+    }
+
+    #[test]
+    fn query_t5() {
+        let uri = "http://www.example.org/a%20b?q=c+d".parse::<Uri>().unwrap();
+        assert_eq!(uri.query(), Some("q=c+d"));
+        // assert_eq!(s.decode_path(), Some("/a b".to_owned()));
+    }
+
+    #[test]
+    fn query_t6() {
+        let uri = "http://www.example.org/?q=rust+language"
+            .parse::<Uri>()
+            .unwrap();
+        assert_eq!(uri.query(), Some("q=rust+language"));
+    }
+
+    #[test]
+    fn query_t7() {
+        let uri = "http://rest.rsc.io/foo%2fbar/baz%2Fquux?alt=media"
+            .parse::<Uri>()
+            .unwrap();
+        assert_eq!(uri.query(), Some("alt=media"));
+    }
+
+    #[test]
+    fn fragment_t1() {
+        let uri = "http://www.example.org/foo.html#bar"
+            .parse::<Uri>()
+            .unwrap();
+        assert_eq!(uri.fragment(), Some("bar"));
+    }
+
+    #[test]
+    fn fragment_t2() {
+        let uri = "http://www.example.org/foo.html".parse::<Uri>().unwrap();
+        assert_eq!(uri.fragment(), None);
+    }
+
+    #[test]
+    fn request_uri_t1() {
         let uri = "http://rest.rsc.io/foo%2fbar/baz%2Fquux?alt=media"
             .parse::<Uri>()
             .unwrap();
@@ -320,114 +581,29 @@ mod tests {
         let uri = "http://rest.rsc.io/foo%2fbar/baz%2Fquux?alt=media"
             .parse::<Uri>()
             .unwrap();
-        assert_eq!(uri.request_uri(), "/foo%2fbar/baz%2Fquux?alt=media");
+        assert_eq!(
+            uri.proxy_request_uri(),
+            "http://rest.rsc.io:80/foo%2fbar/baz%2Fquux?alt=media"
+        );
     }
 
     #[test]
-    fn no_path() {
-        let uri = "http://www.example.org".parse::<Uri>().unwrap();
-        assert_eq!(uri.scheme(), "http");
-        assert_eq!(uri.host(), "www.example.org");
+    fn origin_t1() {
+        let uri = "http://www.example.org/foo.html".parse::<Uri>().unwrap();
+        assert_eq!(uri.origin(), "http://www.example.org:80");
     }
 
     #[test]
-    fn with_path() {
-        let uri = "http://www.example.org/".parse::<Uri>().unwrap();
-        assert_eq!(uri.scheme(), "http");
-        assert_eq!(uri.host(), "www.example.org");
-        assert_eq!(uri.path(), Some("/"));
+    fn host_port_t1() {
+        let uri = "http://www.example.org/foo.html".parse::<Uri>().unwrap();
+        assert_eq!(uri.host_port(), "www.example.org:80");
     }
 
-    #[test]
-    fn path_with_hex_escaping() {
-        let uri = "http://www.example.org/file%20one%26two"
-            .parse::<Uri>()
-            .unwrap();
-        assert_eq!(uri.scheme(), "http");
-        assert_eq!(uri.host(), "www.example.org");
-        assert_eq!(uri.path(), Some("/file%20one%26two"));
-        // assert_eq!(u.decode_path(), Some("/file one&two".to_owned()));
-    }
-
-    #[test]
-    fn user() {
-        let uri = "ftp://webmaster@www.example.org/".parse::<Uri>().unwrap();
-        assert_eq!(uri.scheme(), "ftp");
-        assert_eq!(uri.user_info(), Some("webmaster"));
-        assert_eq!(uri.host(), "www.example.org");
-        assert_eq!(uri.path(), Some("/"));
-    }
-
-    #[test]
-    fn escape_sequence_in_username() {
-        let uri = "ftp://john%20doe@www.example.org/".parse::<Uri>().unwrap();
-        assert_eq!(uri.scheme(), "ftp");
-        assert_eq!(uri.user_info(), Some("john%20doe"));
-        assert_eq!(uri.host(), "www.example.org");
-        assert_eq!(uri.path(), Some("/"));
-        // assert_eq!(u.decode_user(), Some("john doe".to_owned()));
-    }
-
-    #[test]
-    fn empty_query() {
-        let uri = "http://www.example.org/?".parse::<Uri>().unwrap();
-        assert_eq!(uri.scheme(), "http");
-        assert_eq!(uri.host(), "www.example.org");
-        assert_eq!(uri.path(), Some("/"));
-        assert_eq!(uri.query(), Some(""));
-    }
-
-    #[test]
-    fn query_ending_in_question_mark() {
-        let uri = "http://www.example.org/?foo=bar?".parse::<Uri>().unwrap();
-        assert_eq!(uri.scheme(), "http");
-        assert_eq!(uri.host(), "www.example.org");
-        assert_eq!(uri.path(), Some("/"));
-        assert_eq!(uri.query(), Some("foo=bar?"));
-    }
-
-    #[test]
-    fn query() {
-        let uri = "http://www.example.org/?q=rust+language"
-            .parse::<Uri>()
-            .unwrap();
-        assert_eq!(uri.scheme(), "http");
-        assert_eq!(uri.host(), "www.example.org");
-        assert_eq!(uri.path(), Some("/"));
-        assert_eq!(uri.query(), Some("q=rust+language"));
-    }
-
-    #[test]
-    fn query_with_hex_escaping() {
-        let uri = "http://www.example.org/?q=go%20language"
-            .parse::<Uri>()
-            .unwrap();
-        assert_eq!(uri.scheme(), "http");
-        assert_eq!(uri.host(), "www.example.org");
-        assert_eq!(uri.path(), Some("/"));
-        assert_eq!(uri.query(), Some("q=go%20language"));
-    }
-
-    #[test]
-    fn outside_query() {
-        let uri = "http://www.example.org/a%20b?q=c+d".parse::<Uri>().unwrap();
-        assert_eq!(uri.scheme(), "http");
-        assert_eq!(uri.host(), "www.example.org");
-        assert_eq!(uri.path(), Some("/a%20b"));
-        assert_eq!(uri.query(), Some("q=c+d"));
-        // assert_eq!(s.decode_path(), Some("/a b".to_owned()));
-    }
-
-    #[test]
-    fn path_without_leading2() {
-        let uri = "http://www.example.org/?q=rust+language"
-            .parse::<Uri>()
-            .unwrap();
-        assert_eq!(uri.scheme(), "http");
-        assert_eq!(uri.host(), "www.example.org");
-        assert_eq!(uri.path(), Some("/"));
-        assert_eq!(uri.query(), Some("q=rust+language"));
-    }
+    // #[test]
+    // fn addr_port_t1() {
+    //     let uri = "http://www.example.org/foo.html".parse::<Uri>().unwrap();
+    //     assert_eq!(uri.addr_port(), vec![0u8, 80u8]);
+    // }
 
     // #[test]
     // fn path_without_leading() {
@@ -436,57 +612,6 @@ mod tests {
     //     // Opaque:   "%2f%2fwww.example.org/",
     //     u.query = Some("q=rust+language");
     //         // }
-
-    #[test]
-    fn non() {
-        let uri = "mailto://webmaster@example.org".parse::<Uri>().unwrap();
-        assert_eq!(uri.scheme(), "mailto");
-        assert_eq!(uri.user_info(), Some("webmaster"));
-        assert_eq!(uri.host(), "example.org");
-    }
-    #[test]
-    fn escaped() {
-        let uri = "http://%3Fam:pa%3Fsword@google.com".parse::<Uri>().unwrap();
-        assert_eq!(uri.scheme(), "http");
-        assert_eq!(uri.user_info(), Some("%3Fam:pa%3Fsword"));
-        assert_eq!(uri.host(), "google.com");
-        // assert_eq!(s.decode_user(), Some("?am".to_owned()));
-        // assert_eq!(s.decode_password(), Some("pa?sword".to_owned()));
-    }
-
-    #[test]
-    fn host_subcomponent() {
-        let uri = "http://192.168.0.1/".parse::<Uri>().unwrap();
-        assert_eq!(uri.scheme(), "http");
-        assert_eq!(uri.host(), "192.168.0.1");
-        assert_eq!(uri.path(), Some("/"));
-    }
-
-    #[test]
-    fn host_and_port_subcomponents() {
-        let uri = "http://192.168.0.1:8080/".parse::<Uri>().unwrap();
-        assert_eq!(uri.scheme(), "http");
-        assert_eq!(uri.host(), "192.168.0.1");
-        assert_eq!(uri.port(), Some(8080));
-        assert_eq!(uri.path(), Some("/"));
-    }
-
-    #[test]
-    fn host_subcomponent2() {
-        let uri = "http://[fe80::1]/".parse::<Uri>().unwrap();
-        assert_eq!(uri.scheme(), "http");
-        assert_eq!(uri.host(), "[fe80::1]");
-        assert_eq!(uri.path(), Some("/"));
-    }
-
-    #[test]
-    fn host_and_port_subcomponents2() {
-        let uri = "http://[fe80::1]:8080/".parse::<Uri>().unwrap();
-        assert_eq!(uri.scheme(), "http");
-        assert_eq!(uri.host(), "[fe80::1]");
-        assert_eq!(uri.port(), Some(8080));
-        assert_eq!(uri.path(), Some("/"));
-    }
 
     // #[test]
     // fn host_subcomponent3() {
@@ -523,62 +648,6 @@ mod tests {
     //     assert_eq!(uri.path(), Some("/"));
     //         }
 
-    #[test]
-    fn alternate_escapings_of_path_survive_round_trip() {
-        let uri = "http://rest.rsc.io/foo%2fbar/baz%2Fquux?alt=media"
-            .parse::<Uri>()
-            .unwrap();
-        assert_eq!(uri.scheme(), "http");
-        assert_eq!(uri.host(), "rest.rsc.io");
-        assert_eq!(uri.path(), Some("/foo%2fbar/baz%2Fquux"));
-        assert_eq!(uri.query(), Some("alt=media"));
-        // assert_eq!(s.decode_path(), Some("/foo/bar/baz/quux".to_owned()));
-    }
-
-    #[test]
-    fn issue_12036() {
-        let uri = "mysql://a,b,c/bar".parse::<Uri>().unwrap();
-        assert_eq!(uri.scheme(), "mysql");
-        assert_eq!(uri.host(), "a,b,c");
-        assert_eq!(uri.path(), Some("/bar"));
-    }
-
-    #[test]
-    fn worst_case_host() {
-        let uri = "scheme://!$&'()*+,;=hello!:23/path".parse::<Uri>().unwrap();
-        assert_eq!(uri.scheme(), "scheme");
-        assert_eq!(uri.host(), "!$&'()*+,;=hello!");
-        assert_eq!(uri.port(), Some(23));
-        assert_eq!(uri.path(), Some("/path"));
-    }
-
-    #[test]
-    fn worst_case_path() {
-        let uri = "http://host/!$&'()*+,;=:@[hello]".parse::<Uri>().unwrap();
-        assert_eq!(uri.scheme(), "http");
-        assert_eq!(uri.host(), "host");
-        assert_eq!(uri.path(), Some("/!$&'()*+,;=:@[hello]"));
-        // Rawu.path = Some("/!$&'()*+,;=:@[hello]");
-    }
-
-    #[test]
-    fn example() {
-        let uri = "http://example.com/oid/[order_id]".parse::<Uri>().unwrap();
-        assert_eq!(uri.scheme(), "http");
-        assert_eq!(uri.host(), "example.com");
-        assert_eq!(uri.path(), Some("/oid/[order_id]"));
-        // Rawu.path = Some("/oid/[order_id]");
-    }
-
-    #[test]
-    fn example2() {
-        let uri = "http://192.168.0.2:8080/foo".parse::<Uri>().unwrap();
-        assert_eq!(uri.scheme(), "http");
-        assert_eq!(uri.host(), "192.168.0.2");
-        assert_eq!(uri.port(), Some(8080));
-        assert_eq!(uri.path(), Some("/foo"));
-    }
-
     //          //      let uri = "http://192.168.0.2:/foo".parse::<Uri>().unwrap();
     //      		assert_eq!(uri.scheme(), "http");
     //      		u.host = "192.168.0.2:";
@@ -613,14 +682,6 @@ mod tests {
     //      		u.path = Some("/foo");
     //          // }
 
-    #[test]
-    fn example3() {
-        let uri = "http://hello.世界.com/foo".parse::<Uri>().unwrap();
-        assert_eq!(uri.scheme(), "http");
-        assert_eq!(uri.host(), "hello.世界.com");
-        assert_eq!(uri.path(), Some("/foo"));
-    }
-
     //          //      let uri = "http://hello.%e4%b8%96%e7%95%8c.com/foo".parse::<Uri>().unwrap();
     //      		assert_eq!(uri.scheme(), "http");
     //      		u.host = "hello.世界.com";
@@ -633,22 +694,6 @@ mod tests {
     //      		u.host = "hello.世界.com";
     //      		u.path = Some("/foo");
     //          // }
-
-    #[test]
-    fn example4() {
-        let uri = "http://example.com//foo".parse::<Uri>().unwrap();
-        assert_eq!(uri.scheme(), "http");
-        assert_eq!(uri.host(), "example.com");
-        assert_eq!(uri.path(), Some("//foo"));
-    }
-
-    #[test]
-    fn test_that_we_can_reparse_the_host_names_we_accept() {
-        let uri = "myscheme://authority<\"hi\">/foo".parse::<Uri>().unwrap();
-        assert_eq!(uri.scheme(), "myscheme");
-        assert_eq!(uri.host(), "authority<\"hi\">");
-        assert_eq!(uri.path(), Some("/foo"));
-    }
 
     // #[test]
     // fn example5() {
