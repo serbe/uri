@@ -50,6 +50,53 @@ pub struct Uri {
 }
 
 impl Uri {
+    fn new(
+        scheme: &str,
+        username: Option<&str>,
+        password: Option<&str>,
+        host: &str,
+        port: Option<u16>,
+        path: Option<&str>,
+        query: Option<&str>,
+        fragment: Option<&str>,
+    ) -> Result<Self> {
+        let mut uri = String::new();
+        if !scheme.is_empty() {
+            uri.push_str(scheme);
+            uri.push_str("://");
+        }
+        match (username, password) {
+            (Some(username), Some(password)) => {
+                uri.push_str(username);
+                uri.push_str(":");
+                uri.push_str(password);
+                uri.push_str("@");
+            }
+            (Some(username), None) => {
+                uri.push_str(username);
+                uri.push_str("@");
+            }
+            _ => (),
+        }
+        uri.push_str(host);
+        if let Some(port) = port {
+            uri.push_str(":");
+            uri.push_str(&port.to_string());
+        }
+        if let Some(path) = path {
+            uri.push_str(path);
+        }
+        if let Some(query) = query {
+            uri.push_str("?");
+            uri.push_str(query);
+        }
+        if let Some(fragment) = fragment {
+            uri.push_str("#");
+            uri.push_str(fragment);
+        }
+        uri.parse()
+    }
+
     pub fn as_str(&self) -> &str {
         &self.inner
     }
@@ -203,6 +250,29 @@ impl Uri {
         } else {
             None
         }
+    }
+
+    pub fn set_authority(&self, username: &str, password: &str) -> Result<Self> {
+        let username = if username.is_empty() {
+            None
+        } else {
+            Some(username)
+        };
+        let password = if username.is_none() || password.is_empty() {
+            None
+        } else {
+            Some(password)
+        };
+        Uri::new(
+            self.scheme(),
+            username,
+            password,
+            self.host(),
+            self.port(),
+            self.path(),
+            self.query(),
+            self.fragment(),
+        )
     }
 }
 
