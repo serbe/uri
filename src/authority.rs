@@ -50,6 +50,18 @@ impl Authority {
             _ => None,
         }
     }
+
+    pub fn user_pass(&self) -> (&str, &str) {
+        let username = match self.username() {
+            Some(username) => username,
+            None => "",
+        };
+        let password = match self.password() {
+            Some(password) => password,
+            None => "",
+        };
+        (username, password)
+    }
 }
 
 impl FromStr for Authority {
