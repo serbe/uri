@@ -1,7 +1,7 @@
 pub use addr::Addr;
 pub use authority::Authority;
 pub use error::{Error, Result};
-pub use uri::Uri;
+pub use crate::uri::Uri;
 
 mod addr;
 mod authority;

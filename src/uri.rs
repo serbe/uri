@@ -42,7 +42,7 @@ impl TryFrom<&str> for Uri {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Uri> {
-        value.parse()
+        Ok(value.parse()?)
     }
 }
 
@@ -368,7 +368,29 @@ fn remove_spaces(text: &mut String) {
 
 #[cfg(test)]
 mod tests {
+    use std::convert::TryFrom;
     use crate::uri::Uri;
+
+    #[test]
+    fn try_from_str() {
+        let input = "http://www.example.org";
+        let uri: Uri = Uri::try_from(input).unwrap();
+        assert_eq!(uri.as_str(), input);
+    }
+
+    #[test]
+    fn try_from_string() {
+        let input = "http://www.example.org".to_string();
+        let uri: Uri = Uri::try_from(input.clone()).unwrap();
+        assert_eq!(uri.as_str(), input.as_str());
+    }
+
+    #[test]
+    fn try_from_string_ref() {
+        let input = &"http://www.example.org".to_string();
+        let uri: Uri = Uri::try_from(input).unwrap();
+        assert_eq!(uri.as_str(), input.as_str());
+    }
 
     #[test]
     fn as_str_t1() {
