@@ -4,39 +4,12 @@ use std::ops::Range;
 use std::str;
 use std::str::FromStr;
 use std::string::ToString;
+use std::convert::TryFrom;
 
 use crate::addr::Addr;
 use crate::authority::Authority;
 use crate::error::{Error, Result};
 use crate::range::{get_chunks, RangeUsize};
-
-// pub trait IntoUri {
-//     fn into_uri(self) -> Result<Uri>;
-// }
-
-// impl IntoUri for Uri {
-//     fn into_uri(self) -> Result<Uri> {
-//         Ok(self)
-//     }
-// }
-
-// impl<'a> IntoUri for &'a str {
-//     fn into_uri(self) -> Result<Uri> {
-//         self.parse()
-//     }
-// }
-
-// impl IntoUri for String {
-//     fn into_uri(self) -> Result<Uri> {
-//         self.parse()
-//     }
-// }
-
-// impl IntoUri for &String {
-//     fn into_uri(self) -> Result<Uri> {
-//         self.parse()
-//     }
-// }
 
 #[derive(Clone, PartialEq)]
 pub struct Uri {
@@ -47,6 +20,38 @@ pub struct Uri {
     path: Option<RangeUsize>,
     query: Option<RangeUsize>,
     fragment: Option<RangeUsize>,
+}
+
+impl TryFrom<String> for Uri {
+    type Error = Error;
+
+    fn try_from(value: String) -> Result<Uri> {
+        Ok(value.parse()?)
+    }
+}
+
+impl TryFrom<&String> for Uri {
+    type Error = Error;
+
+    fn try_from(value: &String) -> Result<Uri> {
+        Ok(value.parse()?)
+    }
+}
+
+impl TryFrom<&str> for Uri {
+    type Error = Error;
+
+    fn try_from(value: &str) -> Result<Uri> {
+        value.parse()
+    }
+}
+
+impl TryFrom<&Uri> for Uri {
+    type Error = Error;
+
+    fn try_from(value: &Uri) -> Result<Uri> {
+        Ok(value.clone())
+    }
 }
 
 impl Uri {
