@@ -120,8 +120,9 @@ impl Uri {
 
     pub fn host_header(&self) -> String {
         match self.default_port() {
-            p if p == 80 || p == 8080 => self.host().to_string(),
-            p => format!("{}:{}", self.host(), p),
+            Some(p) if p == 80 || p == 8080 => self.host().to_string(),
+            Some(p) => format!("{}:{}", self.host(), p),
+            None => format!("{}", self.host()),
         }
     }
 
@@ -129,17 +130,15 @@ impl Uri {
         self.authority.port()
     }
 
-    pub fn default_port(&self) -> u16 {
-        let default_port = match self.scheme() {
-            "https" => 443,
-            "http" => 80,
-            "socks5" | "socks5h" => 1080,
-            _ => 80,
-        };
-
+    pub fn default_port(&self) -> Option<u16> {
         match self.authority.port() {
-            Some(port) => port,
-            None => default_port,
+            Some(port) => Some(port),
+            None => match self.scheme() {
+                "https" => Some(443),
+                "http" => Some(80),
+                "socks5" | "socks5h" => Some(1080),
+                _ => None,
+            }
         }
     }
 
@@ -186,7 +185,10 @@ impl Uri {
     }
 
     pub fn host_port(&self) -> String {
-        format!("{}:{}", self.host(), self.default_port())
+        match self.default_port() {
+            Some(port) => format!("{}:{}", self.host(), port),
+            None => format!("{}", self.host())
+        }
     }
 
     fn socket_addrs(&self) -> Result<Vec<SocketAddr>> {
@@ -517,13 +519,19 @@ mod tests {
     #[test]
     fn default_port_t1() {
         let uri = "http://www.example.org:443".parse::<Uri>().unwrap();
-        assert_eq!(uri.default_port(), 443);
+        assert_eq!(uri.default_port(), Some(443));
     }
 
     #[test]
     fn default_port_t2() {
         let uri = "https://www.example.org".parse::<Uri>().unwrap();
-        assert_eq!(uri.default_port(), 443);
+        assert_eq!(uri.default_port(), Some(443));
+    }
+
+    #[test]
+    fn default_port_t3() {
+        let uri = "sptth://www.example.org".parse::<Uri>().unwrap();
+        assert_eq!(uri.default_port(), None);
     }
 
     #[test]
