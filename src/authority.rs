@@ -3,6 +3,7 @@ use std::ops::Range;
 use std::str::FromStr;
 
 use base64::encode;
+use percent_encoding::percent_decode_str;
 
 use crate::error::{Error, Result};
 use crate::range::{get_chunks, RangeUsize};
@@ -21,8 +22,24 @@ impl Authority {
         self.username.map(|r| &self.inner[r])
     }
 
+    pub fn decode_username(&self) -> Option<String> {
+        self.username().map_or(None, |v| {
+            percent_decode_str(v)
+                .decode_utf8()
+                .map_or(None, |op| Some(op.to_string()))
+        })
+    }
+
     pub fn password(&self) -> Option<&str> {
         self.password.map(|r| &self.inner[r])
+    }
+
+    pub fn decode_password(&self) -> Option<String> {
+        self.password().map_or(None, |v| {
+            percent_decode_str(v)
+                .decode_utf8()
+                .map_or(None, |op| Some(op.to_string()))
+        })
     }
 
     pub fn user_info(&self) -> Option<&str> {

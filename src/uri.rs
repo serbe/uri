@@ -1,10 +1,12 @@
+use std::convert::TryFrom;
 use std::fmt;
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::ops::Range;
 use std::str;
 use std::str::FromStr;
 use std::string::ToString;
-use std::convert::TryFrom;
+
+use percent_encoding::percent_decode_str;
 
 use crate::addr::Addr;
 use crate::authority::Authority;
@@ -114,6 +116,14 @@ impl Uri {
         self.authority.user_info()
     }
 
+    pub fn decode_username(&self) -> Option<String> {
+        self.authority.decode_username()
+    }
+
+    pub fn decode_password(&self) -> Option<String> {
+        self.authority.decode_password()
+    }
+
     pub fn host(&self) -> &str {
         self.authority.host()
     }
@@ -134,16 +144,66 @@ impl Uri {
         match self.authority.port() {
             Some(port) => Some(port),
             None => match self.scheme() {
-                "https" => Some(443),
+                "acap" => Some(674),
+                "afp" => Some(548),
+                "dict" => Some(2628),
+                "dns" => Some(53),
+                "file" => None,
+                "ftp" => Some(21),
+                "git" => Some(9418),
+                "gopher" => Some(70),
                 "http" => Some(80),
-                "socks5" | "socks5h" => Some(1080),
+                "https" => Some(443),
+                "imap" => Some(143),
+                "ipp" => Some(631),
+                "ipps" => Some(631),
+                "irc" => Some(194),
+                "ircs" => Some(6697),
+                "ldap" => Some(389),
+                "ldaps" => Some(636),
+                "mms" => Some(1755),
+                "msrp" => Some(2855),
+                "msrps" => None,
+                "mtqp" => Some(1038),
+                "nfs" => Some(111),
+                "nntp" => Some(119),
+                "nntps" => Some(563),
+                "pop" => Some(110),
+                "prospero" => Some(1525),
+                "redis" => Some(6379),
+                "rsync" => Some(873),
+                "rtsp" => Some(554),
+                "rtsps" => Some(322),
+                "rtspu" => Some(5005),
+                "sftp" => Some(22),
+                "smb" => Some(445),
+                "snmp" => Some(161),
+                "socks5" => Some(1080),
+                "socks5h" => Some(1080),
+                "ssh" => Some(22),
+                "steam" => None,
+                "svn" => Some(3690),
+                "telnet" => Some(23),
+                "ventrilo" => Some(3784),
+                "vnc" => Some(5900),
+                "wais" => Some(210),
+                "ws" => Some(80),
+                "wss" => Some(443),
                 _ => None,
-            }
+            },
         }
     }
 
     pub fn path(&self) -> Option<&str> {
         self.path.map(|r| &self.inner[r])
+    }
+
+    pub fn decode_path(&self) -> Option<String> {
+        self.path().map_or(None, |v| {
+            percent_decode_str(v)
+                .decode_utf8()
+                .map_or(None, |op| Some(op.to_string()))
+        })
     }
 
     pub fn query(&self) -> Option<&str> {
@@ -187,7 +247,7 @@ impl Uri {
     pub fn host_port(&self) -> String {
         match self.default_port() {
             Some(port) => format!("{}:{}", self.host(), port),
-            None => format!("{}", self.host())
+            None => format!("{}", self.host()),
         }
     }
 
@@ -370,8 +430,8 @@ fn remove_spaces(text: &mut String) {
 
 #[cfg(test)]
 mod tests {
-    use std::convert::TryFrom;
     use crate::uri::Uri;
+    use std::convert::TryFrom;
 
     #[test]
     fn try_from_str() {
@@ -428,8 +488,8 @@ mod tests {
     fn user_info_t3() {
         let uri = "http://%3Fam:pa%3Fsword@google.com".parse::<Uri>().unwrap();
         assert_eq!(uri.user_info(), Some("%3Fam:pa%3Fsword"));
-        // assert_eq!(s.decode_user(), Some("?am".to_owned()));
-        // assert_eq!(s.decode_password(), Some("pa?sword".to_owned()));
+        assert_eq!(uri.decode_username(), Some("?am".to_owned()));
+        assert_eq!(uri.decode_password(), Some("pa?sword".to_owned()));
     }
 
     #[test]
@@ -546,7 +606,7 @@ mod tests {
             .parse::<Uri>()
             .unwrap();
         assert_eq!(uri.path(), Some("/file%20one%26two"));
-        // assert_eq!(u.decode_path(), Some("/file one&two".to_owned()));
+        assert_eq!(uri.decode_path(), Some("/file one&two".to_owned()));
     }
 
     #[test]
@@ -573,7 +633,7 @@ mod tests {
             .parse::<Uri>()
             .unwrap();
         assert_eq!(uri.path(), Some("/foo%2fbar/baz%2Fquux"));
-        // assert_eq!(s.decode_path(), Some("/foo/bar/baz/quux".to_owned()));
+        assert_eq!(uri.decode_path(), Some("/foo/bar/baz/quux".to_owned()));
     }
 
     #[test]
@@ -640,7 +700,7 @@ mod tests {
     fn query_t5() {
         let uri = "http://www.example.org/a%20b?q=c+d".parse::<Uri>().unwrap();
         assert_eq!(uri.query(), Some("q=c+d"));
-        // assert_eq!(s.decode_path(), Some("/a b".to_owned()));
+        assert_eq!(uri.decode_path(), Some("/a b".to_owned()));
     }
 
     #[test]
@@ -728,12 +788,12 @@ mod tests {
 
     // #[test]
     // fn host_and_port_subcomponents3() {
-    //         //     let uri = "http://[fe80::1%25en0]:8080/".parse::<Uri>().unwrap();
+    //     let uri = "http://[fe80::1%25en0]:8080/".parse::<Uri>().unwrap();
     //     assert_eq!(uri.scheme(), "http");
-    //     u.host = "[fe80::1%en0]";
-    //     u.port = Some("8080");
+    //     assert_eq!(uri.host(), "[fe80::1%en0]");
+    //     assert_eq!(uri.port(), Some(8080));
     //     assert_eq!(uri.path(), Some("/"));
-    //         // }
+    // }
 
     // #[test]
     // fn host_subcomponent4() {
@@ -753,11 +813,13 @@ mod tests {
     //     assert_eq!(uri.path(), Some("/"));
     //         }
 
-    //          //      let uri = "http://192.168.0.2:/foo".parse::<Uri>().unwrap();
-    //      		assert_eq!(uri.scheme(), "http");
-    //      		u.host = "192.168.0.2:";
-    //      		u.path = Some("/foo");
-    //          // }
+    // #[test]
+    // fn host_subcomponent4() {
+    //     let uri = "http://192.168.0.2:/foo".parse::<Uri>().unwrap();
+    //     assert_eq!(uri.scheme(), "http");
+    //     assert_eq!(uri.host(), "192.168.0.2:");
+    //     assert_eq!(uri.path(), Some("/foo"));
+    // }
 
     //          //      	 Malformed IPv6 but still accepted.
     //      let uri = "http://2b01:e34:ef40:7730:8e70:5aff:fefe:edac:8080/foo".parse::<Uri>().unwrap();
