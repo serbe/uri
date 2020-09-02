@@ -32,6 +32,6 @@ pub enum Error {
     // PasswdLenOverflow(usize),
     // #[error("Wrong status: {0}")]
     // WrongStatus(u8),
-    // #[error("No get Socket address")]
-    // SocketAddr
+    #[error("No get Socket address")]
+    SocketAddr
 }

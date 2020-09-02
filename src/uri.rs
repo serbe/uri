@@ -281,11 +281,9 @@ impl Uri {
         Ok(self.host_port().to_socket_addrs()?.collect())
     }
 
-    // pub fn socket_addr(&self) -> Result<SocketAddr> {
-    //     Ok(self.socket_addrs()?.iter()
-    //     .next()
-    //     .map_or(Err(Error::SocketAddr), Ok)?)
-    // }
+    pub fn socket_addr(&self) -> Result<SocketAddr> {
+        self.socket_addrs()?.pop().map_or(Err(Error::SocketAddr), |v| Ok(v))
+    }
 
     pub fn is_ssl(&self) -> bool {
         self.scheme() == "https"
@@ -310,14 +308,6 @@ impl Uri {
     pub fn host_vec(&self) -> Vec<u8> {
         self.addr.to_vec()
     }
-
-    // pub fn socks_addr_type(&self) -> u8 {
-    //     match self.addr {
-    //         Addr::Ipv4(_) => 1u8,
-    //         Addr::Ipv6(_) => 4u8,
-    //         Addr::Domain(_) => 3u8,
-    //     }
-    // }
 
     // fn addr_port(&self) -> Vec<u8> {
     //     let port = self.default_port();
