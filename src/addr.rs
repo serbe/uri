@@ -1,5 +1,7 @@
-use std::net::{Ipv4Addr, Ipv6Addr};
-use std::str::FromStr;
+use std::{
+    net::{Ipv4Addr, Ipv6Addr},
+    str::FromStr,
+};
 
 use crate::error::{Error, Result};
 

@@ -104,6 +104,32 @@ impl Uri {
         uri.parse()
     }
 
+    pub fn set_username(&self, username: &str) -> Result<Uri> {
+        Uri::new(
+            self.scheme(),
+            Some(username),
+            self.authority().password(),
+            self.host(),
+            self.port(),
+            self.path(),
+            self.query(),
+            self.fragment(),
+        )
+    }
+
+    pub fn set_password(&self, password: &str) -> Result<Uri> {
+        Uri::new(
+            self.scheme(),
+            self.authority().username(),
+            Some(password),
+            self.host(),
+            self.port(),
+            self.path(),
+            self.query(),
+            self.fragment(),
+        )
+    }
+
     pub fn as_str(&self) -> &str {
         &self.inner
     }
@@ -251,13 +277,15 @@ impl Uri {
         }
     }
 
-    fn socket_addrs(&self) -> Result<Vec<SocketAddr>> {
+    pub fn socket_addrs(&self) -> Result<Vec<SocketAddr>> {
         Ok(self.host_port().to_socket_addrs()?.collect())
     }
 
-    pub fn socket_addr(&self) -> Result<SocketAddr> {
-        Ok(self.socket_addrs()?[0])
-    }
+    // pub fn socket_addr(&self) -> Result<SocketAddr> {
+    //     Ok(self.socket_addrs()?.iter()
+    //     .next()
+    //     .map_or(Err(Error::SocketAddr), Ok)?)
+    // }
 
     pub fn is_ssl(&self) -> bool {
         self.scheme() == "https"
@@ -283,13 +311,13 @@ impl Uri {
         self.addr.to_vec()
     }
 
-    pub fn socks_addr_type(&self) -> u8 {
-        match self.addr {
-            Addr::Ipv4(_) => 1u8,
-            Addr::Ipv6(_) => 4u8,
-            Addr::Domain(_) => 3u8,
-        }
-    }
+    // pub fn socks_addr_type(&self) -> u8 {
+    //     match self.addr {
+    //         Addr::Ipv4(_) => 1u8,
+    //         Addr::Ipv6(_) => 4u8,
+    //         Addr::Domain(_) => 3u8,
+    //     }
+    // }
 
     // fn addr_port(&self) -> Vec<u8> {
     //     let port = self.default_port();

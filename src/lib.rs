@@ -1,10 +1,10 @@
 /*!
  * rust-uri is is an implementation of the Uniform Resource Identifier (URI)
- * 
+ *
  * # URI parsing and data structures
- * 
- * 
- * 
+ *
+ *
+ *
  */
 
 pub use crate::uri::Uri;

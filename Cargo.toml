@@ -1,6 +1,6 @@
 [package]
 name = "uri"
-version = "0.1.6"
+version = "0.1.7"
 authors = ["mkoctuk <mkoctuk@gmail.com>"]
 edition = "2018"
 
