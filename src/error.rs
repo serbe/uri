@@ -20,18 +20,10 @@ pub enum Error {
     ParseHost,
     #[error("Parse port: {0}")]
     ParsePort(String),
-    // #[error("Unsupported scheme: {0}")]
-    // UnsupportedScheme(String),
     #[error("Empty scheme")]
     EmptyScheme,
     #[error("Empty authority")]
     EmptyAuthority,
-    // #[error("Username len more when 255: {0}")]
-    // UnameLenOverflow(usize),
-    // #[error("Password len more when 255: {0}")]
-    // PasswdLenOverflow(usize),
-    // #[error("Wrong status: {0}")]
-    // WrongStatus(u8),
     #[error("No get Socket address")]
-    SocketAddr
+    SocketAddr,
 }

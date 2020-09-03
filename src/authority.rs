@@ -62,22 +62,10 @@ impl Authority {
     }
 
     pub fn base64_auth(&self) -> Option<String> {
-        match (self.username(), self.password()) {
+        match (self.decode_username(), self.decode_password()) {
             (Some(user), Some(pass)) => Some(encode(&format!("{}:{}", user, pass))),
             _ => None,
         }
-    }
-
-    pub fn user_pass(&self) -> (&str, &str) {
-        let username = match self.username() {
-            Some(username) => username,
-            None => "",
-        };
-        let password = match self.password() {
-            Some(password) => password,
-            None => "",
-        };
-        (username, password)
     }
 }
 
