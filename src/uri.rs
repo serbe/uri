@@ -158,7 +158,7 @@ impl Uri {
         match self.default_port() {
             Some(p) if p == 80 || p == 8080 => self.host().to_string(),
             Some(p) => format!("{}:{}", self.host(), p),
-            None => format!("{}", self.host()),
+            None => self.host().to_string(),
         }
     }
 
@@ -225,7 +225,7 @@ impl Uri {
     }
 
     pub fn decode_path(&self) -> Option<String> {
-        self.path().map_or(None, |v| {
+        self.path().and_then(|v| {
             percent_decode_str(v)
                 .decode_utf8()
                 .map_or(None, |op| Some(op.to_string()))
@@ -273,7 +273,7 @@ impl Uri {
     pub fn host_port(&self) -> String {
         match self.default_port() {
             Some(port) => format!("{}:{}", self.host(), port),
-            None => format!("{}", self.host()),
+            None => self.host().to_string(),
         }
     }
 
@@ -284,7 +284,7 @@ impl Uri {
     pub fn socket_addr(&self) -> Result<SocketAddr> {
         self.socket_addrs()?
             .pop()
-            .map_or(Err(Error::SocketAddr), |v| Ok(v))
+            .map_or(Err(Error::SocketAddr), Ok)
     }
 
     pub fn is_ssl(&self) -> bool {

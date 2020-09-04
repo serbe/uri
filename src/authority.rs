@@ -23,7 +23,7 @@ impl Authority {
     }
 
     pub fn decode_username(&self) -> Option<String> {
-        self.username().map_or(None, |v| {
+        self.username().and_then(|v| {
             percent_decode_str(v)
                 .decode_utf8()
                 .map_or(None, |op| Some(op.to_string()))
@@ -35,7 +35,7 @@ impl Authority {
     }
 
     pub fn decode_password(&self) -> Option<String> {
-        self.password().map_or(None, |v| {
+        self.password().and_then(|v| {
             percent_decode_str(v)
                 .decode_utf8()
                 .map_or(None, |op| Some(op.to_string()))
