@@ -22,6 +22,8 @@ pub enum Error {
     ParsePort(String),
     #[error("Empty scheme")]
     EmptyScheme,
+    #[error("Empty host in authority")]
+    EmptyHost,
     #[error("Empty authority")]
     EmptyAuthority,
     #[error("Empty username but have password")]

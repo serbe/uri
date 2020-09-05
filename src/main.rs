@@ -1,4 +1,4 @@
-use std::ops::{Range, RangeFrom, RangeTo};
+// use std::ops::{Range, RangeFrom, RangeTo};
 use std::str::FromStr;
 
 use crate::error::{Error, Result};
@@ -9,12 +9,12 @@ mod error;
 // mod authority;
 // mod uri;
 
-#[derive(Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Uri {
     inner: String,
     scheme_end: usize,
     authority_end: Option<usize>,
-    path: Range<u32>,
+    path_start: Option<usize>,
     query_start: Option<usize>,
     fragment_start: Option<usize>,
 }
@@ -23,8 +23,8 @@ impl FromStr for Uri {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self> {
-        let mut inner = s.to_string();
-//         // remove_spaces(&mut s);
+        let inner = s.to_string();
+        //         // remove_spaces(&mut s);
         let scheme_end = get_scheme(s)?;
         let uri_part = s.split_at(scheme_end);
 
@@ -50,51 +50,65 @@ impl FromStr for Uri {
             Ok(None)
         }?;
 
-//         let (scheme, maybe_part) = get_chunks(&s, uri_part, ":", true, false);
-//         let (scheme, mut uri_part) = if let Some(scheme) = scheme {
-//             let range = Range::from(scheme);
-//             if s[range.clone()].chars().all(|c| c.is_alphanumeric()) {
-//                 s.replace_range(range.clone(), &s[range].to_lowercase());
-//                 (scheme, maybe_part)
-//             } else {
-//                 return Err(Error::EmptyScheme);
-//             }
-//         } else {
-//             return Err(Error::EmptyScheme);
-//         };
+        let uri_part = if let Some(pos) = authority_end {
+            uri_part.split_at(pos).0
+        } else {
+            uri_part
+        };
 
-//         let authority = if let Some(u) = &uri_part {
-//             let (auth, part) = if s[*u].contains("//") {
-//                 get_chunks(
-//                     &s,
-//                     Some(RangeUsize::new(u.start + 2, u.end)),
-//                     "/",
-//                     false,
-//                     false,
-//                 )
-//             } else {
-//                 get_chunks(&s, uri_part, "/", false, false)
-//             };
-//             if let Some(a) = auth {
-//                 uri_part = part;
-//                 s[a].parse::<Authority>()?
-//             } else {
-//                 return Err(Error::EmptyAuthority);
-//             }
-//         } else {
-//             return Err(Error::EmptyAuthority);
-//         };
+        let path_start = uri_part.find('/');
 
-//         let addr = authority.host().parse::<Addr>()?;
+        // let uri_part = if let Some(pos) = query_start {
+        //     uri_part.split_at(pos).0
+        // } else {
+        //     uri_part
+        // };
 
-//         let (path, _uri_part) = get_chunks(&s, uri_part, "?", false, false);
+        //         let (scheme, maybe_part) = get_chunks(&s, uri_part, ":", true, false);
+        //         let (scheme, mut uri_part) = if let Some(scheme) = scheme {
+        //             let range = Range::from(scheme);
+        //             if s[range.clone()].chars().all(|c| c.is_alphanumeric()) {
+        //                 s.replace_range(range.clone(), &s[range].to_lowercase());
+        //                 (scheme, maybe_part)
+        //             } else {
+        //                 return Err(Error::EmptyScheme);
+        //             }
+        //         } else {
+        //             return Err(Error::EmptyScheme);
+        //         };
+
+        //         let authority = if let Some(u) = &uri_part {
+        //             let (auth, part) = if s[*u].contains("//") {
+        //                 get_chunks(
+        //                     &s,
+        //                     Some(RangeUsize::new(u.start + 2, u.end)),
+        //                     "/",
+        //                     false,
+        //                     false,
+        //                 )
+        //             } else {
+        //                 get_chunks(&s, uri_part, "/", false, false)
+        //             };
+        //             if let Some(a) = auth {
+        //                 uri_part = part;
+        //                 s[a].parse::<Authority>()?
+        //             } else {
+        //                 return Err(Error::EmptyAuthority);
+        //             }
+        //         } else {
+        //             return Err(Error::EmptyAuthority);
+        //         };
+
+        //         let addr = authority.host().parse::<Addr>()?;
+
+        //         let (path, _uri_part) = get_chunks(&s, uri_part, "?", false, false);
 
         Ok(Uri {
             inner,
             scheme_end,
             authority_end,
             // addr,
-            path,
+            path_start,
             query_start,
             fragment_start,
         })
@@ -106,13 +120,18 @@ impl FromStr for Uri {
 //     println!("{:?}", s.find(ch));
 // }
 
+// fn get_path_start(s: &str) -> Option<usize> {
+//    s.find('/')
+// }
+
 fn contain_reserver_char(s: &str) -> bool {
-    s.chars().any(|ch| [':', '/', '?', '#', '[', ']', '@'].contains(&ch))
+    s.chars()
+        .any(|ch| [':', '/', '?', '#', '[', ']', '@'].contains(&ch))
 }
 
-fn check_host(s: &str) -> Result<()> {
-
-}
+// fn check_host(s: &str) -> Result<()> {
+//     Ok(())
+// }
 
 fn check_user_info(s: &str) -> Result<()> {
     if let Some(colon_pos) = s.find(':') {
@@ -139,29 +158,69 @@ fn check_user_info(s: &str) -> Result<()> {
 }
 
 fn get_user_info_end(s: &str) -> Result<Option<usize>> {
-    let user_info_end = if let Some(pos) = s.find('@') {
+    if let Some(pos) = s.find('@') {
         let part = s.split_at(pos);
         let _ = check_user_info(part.0)?;
         Ok(Some(pos))
     } else {
         Ok(None)
-    }?;
-    Ok(user_info_end)
+    }
+}
+
+fn get_host_end(s: &str) -> Result<usize> {
+    if s.is_empty() {
+        Err(Error::EmptyHost)
+    } else {
+        let split_at = if s.starts_with('[') && s.contains(']') {
+            "]:"
+        } else {
+            ":"
+        };
+        Ok(if let Some(pos) = s.rfind(split_at) {
+            pos
+        } else {
+            s.len()
+        })
+    }
+}
+
+fn check_port(s: &str) -> Result<()> {
+    s.parse::<u16>()
+        .map(|_| ())
+        .map_err(|_| Error::ParsePort(s.to_string()))
 }
 
 fn get_authority_end(s: &str) -> Result<Option<usize>> {
-    let user_info_end = if let Some(pos) = s.find('@') {
-        let part = s.split_at(pos);
-        if let Some(colon_pos) = part.0.find(':') {
-            let user_info = part.0.split_at(colon_pos);
-        }
+    let mut len = 0;
+    let user_info_end = get_user_info_end(s)?;
 
-        Ok(Some(pos))
+    let part = if let Some(pos) = user_info_end {
+        len = len + pos + 1;
+        s.split_at(pos).1
     } else {
-        Ok(None)
+        s
     };
 
-    Ok(None)
+    let part = if let Some(pos) = part.find('/') {
+        part.split_at(pos).0
+    } else {
+        part
+    };
+
+    let host_end = get_host_end(part)?;
+
+    len = if host_end < part.len() {
+        let _ = check_port(part.split_at(host_end).1)?;
+        len + part.len()
+    } else {
+        len + host_end
+    };
+
+    if len > 0 {
+        Ok(Some(len))
+    } else {
+        Ok(None)
+    }
 }
 
 fn check_scheme(scheme: &str) -> Result<()> {
@@ -192,7 +251,8 @@ fn get_scheme(s: &str) -> Result<usize> {
 }
 
 fn main() -> Result<()> {
-    let s = "asd@://webmaster@www.example.org/";
-    println!("{:?}", get_scheme(s));
+    let s = "asd://webmaster@www.example.org/";
+    let uri = s.parse::<Uri>();
+    println!("{:?}", uri);
     Ok(())
 }
