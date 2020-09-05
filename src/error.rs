@@ -24,6 +24,14 @@ pub enum Error {
     EmptyScheme,
     #[error("Empty authority")]
     EmptyAuthority,
+    #[error("Empty username but have password")]
+    EmptyUsername,
     #[error("No get Socket address")]
     SocketAddr,
+    #[error("Scheme contains {0}")]
+    InvalidScheme(String),
+    #[error("Username contains reserver chars (use percent-encoded) {0}")]
+    InvalidUsername(String),
+    #[error("Password contains reserver chars (use percent-encoded) {0}")]
+    InvalidPassword(String),
 }
