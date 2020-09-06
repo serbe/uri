@@ -12,7 +12,14 @@ impl RangeUsize {
         RangeUsize { start, end }
     }
 
-    pub(crate) fn to(&self) -> RangeTo<usize> {
+    pub(crate) fn range(&self) -> Range<usize> {
+        Range {
+            start: self.start,
+            end: self.end,
+        }
+    }
+
+    pub(crate) fn range_to(&self) -> RangeTo<usize> {
         RangeTo { end: self.end }
     }
 
@@ -20,8 +27,20 @@ impl RangeUsize {
         self.start = new_start;
     }
 
+    pub(crate) fn shift(&self, shift: usize) -> RangeUsize {
+        RangeUsize::new(self.start + shift, self.end + shift)
+    }
+
     pub(crate) fn end(&mut self, new_end: usize) {
         self.end = new_end;
+    }
+
+    pub(crate) fn is_empty(&self) -> bool {
+        self.start == self.end
+    }
+
+    pub(crate) fn len(&self) -> usize {
+        self.end - self.start
     }
 }
 
@@ -51,16 +70,26 @@ impl RangeUsize {
 //     }
 // }
 
-// impl From<Range<usize>> for RangeUsize {
-//     fn from(range: Range<usize>) -> Self {
-//         RangeUsize::new(range.start, range.end)
-//     }
-// }
+impl Index<RangeUsize> for str {
+    type Output = str;
+
+    fn index(&self, index: RangeUsize) -> &str {
+        &self[index.start..index.end]
+    }
+}
 
 impl Index<&mut RangeUsize> for str {
     type Output = str;
 
     fn index(&self, index: &mut RangeUsize) -> &str {
+        &self[index.start..index.end]
+    }
+}
+
+impl Index<&&mut RangeUsize> for str {
+    type Output = str;
+
+    fn index(&self, index: &&mut RangeUsize) -> &str {
         &self[index.start..index.end]
     }
 }
@@ -89,18 +118,18 @@ impl Index<&RangeUsize> for String {
 //     }
 // }
 
-pub(crate) fn set_start(start: usize, new_start: Option<usize>, shift: usize) -> usize {
-    if let Some(new_start) = new_start {
-        new_start + shift
-    } else {
-        start
-    }
-}
+// pub(crate) fn set_start(start: usize, new_start: Option<usize>, shift: usize) -> usize {
+//     if let Some(new_start) = new_start {
+//         new_start + shift
+//     } else {
+//         start
+//     }
+// }
 
-pub(crate) fn set_end(end: usize, new_end: Option<usize>, shift: usize) -> usize {
-    if let Some(new_end) = new_end {
-        new_end - shift
-    } else {
-        end
-    }
-}
+// pub(crate) fn set_end(end: usize, new_end: Option<usize>, shift: usize) -> usize {
+//     if let Some(new_end) = new_end {
+//         new_end - shift
+//     } else {
+//         end
+//     }
+// }

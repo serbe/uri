@@ -6,15 +6,15 @@ use base64::encode;
 use percent_encoding::percent_decode_str;
 
 use crate::error::{Error, Result};
-use crate::utils::{set_end, set_start, RangeUsize};
+use crate::utils::RangeUsize;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Authority {
     inner: String,
-    username: Option<RangeUsize>,
-    password: Option<RangeUsize>,
-    host: RangeUsize,
-    port: Option<u16>,
+    pub(crate) username: Option<RangeUsize>,
+    pub(crate) password: Option<RangeUsize>,
+    pub(crate) host: RangeUsize,
+    pub(crate) port: Option<u16>,
 }
 
 impl Authority {
@@ -44,7 +44,7 @@ impl Authority {
 
     pub fn user_info(&self) -> Option<&str> {
         match (&self.username, &self.password) {
-            (Some(_), Some(password)) => Some(&self.inner[password.to()]),
+            (Some(_), Some(password)) => Some(&self.inner[password.range_to()]),
             (Some(username), None) => Some(&self.inner[username]),
             _ => None,
         }
@@ -108,31 +108,35 @@ fn get_user_info(s: &str, chunk: &mut RangeUsize) -> Option<RangeUsize> {
 fn get_username(s: &str) -> Option<RangeUsize> {
     match s.find(':') {
         Some(pos) => Some(RangeUsize::new(0, pos)),
-        None =>        Some(RangeUsize::new(0, s.len())),
+        None => Some(RangeUsize::new(0, s.len())),
     }
 }
 
 fn get_password(s: &str) -> Option<RangeUsize> {
     match s.find(':') {
-        Some(pos) => Some(RangeUsize::new(pos+1, s.len())),
-        None =>        None,
+        Some(pos) => Some(RangeUsize::new(pos + 1, s.len())),
+        None => None,
     }
 }
 
 fn get_host(s: &str, chunk: &mut RangeUsize) -> Result<RangeUsize> {
-    if s[chunk].is_empty() {
+    if s[&chunk].is_empty() {
         Err(Error::EmptyHost)
     } else {
-        let split_at = if s[chunk].starts_with('[') && s[chunk].contains(']') {
+        let split_at = if s[&chunk].starts_with('[') && s[&chunk].contains(']') {
             "]:"
         } else {
             ":"
         };
-        Ok(if let Some(pos) = s[chunk].rfind(split_at) {
-            chunk.end(start + pos + split_at.len())
+        let start = chunk.start;
+        let host = if let Some(pos) = s[&chunk].rfind(split_at) {
+            chunk.start(chunk.start + pos + split_at.len());
+            RangeUsize::new(start, chunk.start - split_at.len())
         } else {
-            end
-        })
+            chunk.start(chunk.end);
+            RangeUsize::new(start, chunk.end)
+        };
+        Ok(host)
     }
 }
 
@@ -143,8 +147,9 @@ impl FromStr for Authority {
         let inner = s.to_string();
 
         let mut chunk = RangeUsize::new(0, s.len());
-        let mut username= None;
+        let mut username = None;
         let mut password = None;
+        let mut port = None;
         let user_info = get_user_info(s, &mut chunk);
         if let Some(range) = user_info {
             check_user_info(&inner[range])?;
@@ -152,43 +157,17 @@ impl FromStr for Authority {
             password = get_password(&inner[range]);
         };
         let host = get_host(s, &mut chunk)?;
-        // start = set_end(start, Some(host_end), 0);
-        // if end > start {
-        //     let _ = check_port(s, start, end)?;
-        // }
-
-        let mut username = None;
-        let mut password = None;
-
-        let uri_part = if s.contains('@') {
-            let (info, part) = get_chunks(&s, Some(RangeUsize::new(0, s.len())), "@", true, false);
-            let (name, pass) = get_chunks(&s, info, ":", true, false);
-
-            username = name;
-            password = pass;
-
-            part
-        } else {
-            Some(RangeUsize::new(0, s.len()))
-        };
-
-        let split_by = if s.contains(']') && s.contains('[') {
-            "]:"
-        } else {
-            ":"
-        };
-        let (host, port) = get_chunks(&s, uri_part, split_by, true, false);
-        let host = host.ok_or(Error::ParseHost)?;
-
-        if let Some(p) = port {
-            if inner[p].parse::<u16>().is_err() {
-                return Err(Error::ParsePort(inner[p].to_string()));
-            }
+        if !chunk.is_empty() {
+            port = Some(
+                s[chunk]
+                    .parse::<u16>()
+                    .map_err(|_| Error::ParsePort(s[chunk].to_string()))?,
+            );
         }
 
         Ok(Authority {
             inner,
-            username_end,
+            username,
             password,
             host,
             port,
@@ -199,15 +178,13 @@ impl FromStr for Authority {
 impl fmt::Display for Authority {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let auth = if let Some(pass) = self.password {
-            let range = Range::from(pass);
-
-            let hidden_pass = "*".repeat(range.len());
-            let mut auth = self.inner.to_string();
-            auth.replace_range(range, &hidden_pass);
+            let hidden_pass = "*".repeat(pass.len());
+            let mut auth = self.inner.clone();
+            auth.replace_range(pass.range(), &hidden_pass);
 
             auth
         } else {
-            self.inner.to_string()
+            self.inner.clone()
         };
 
         write!(f, "{}", auth)

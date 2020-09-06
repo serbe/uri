@@ -11,90 +11,16 @@ use percent_encoding::percent_decode_str;
 // use crate::addr::Addr;
 use crate::authority::Authority;
 use crate::error::{Error, Result};
-use crate::utils::{set_end, set_start};
+use crate::utils::RangeUsize;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Uri {
-    inner: String,
-    scheme: usize,
-    authority_end: Option<usize>,
-    path_start: Option<usize>,
-    query_start: Option<usize>,
-    fragment_start: Option<usize>,
-    authority: Option<Authority>,
-}
-
-fn check_scheme(scheme: &str) -> Result<()> {
-    if scheme.is_empty() {
-        return Err(Error::EmptyScheme);
-    }
-    if scheme.char_indices().all(|(pos, ch)| {
-        if pos == 0 {
-            ch.is_alphabetic()
-        } else {
-            ch.is_alphanumeric() || ch == '+' || ch == '.' || ch == '-'
-        }
-    }) {
-        Ok(())
-    } else {
-        Err(Error::InvalidScheme(scheme.to_string()))
-    }
-}
-
-fn get_scheme(s: &str) -> Result<usize> {
-    if let Some(pos) = s.find(':') {
-        let (scheme, _) = s.split_at(pos);
-        check_scheme(scheme)?;
-        Ok(pos)
-    } else {
-        Err(Error::EmptyScheme)
-    }
-}
-
-fn get_fragment(s: &str, start: usize) -> Option<usize> {
-    s[start..]
-        .find('#')
-        .filter(|pos| pos <= &s.len())
-        .map(|pos| start + pos + 1)
-}
-
-fn get_query(s: &str, start: usize, end: usize) -> Option<usize> {
-    s[start..end]
-        .find('?')
-        .filter(|pos| pos <= &s.len())
-        .map(|pos| start + pos + 1)
-}
-
-fn check_port(s: &str, start: usize, end: usize) -> Result<()> {
-    s[start..end]
-        .parse::<u16>()
-        .map(|_| ())
-        .map_err(|_| Error::ParsePort(s[start..end].to_string()))
-}
-
-fn get_authority(s: &str, start: usize, end: usize) -> Result<Option<Authority>> {
-    if !s[start..end].starts_with("//") {
-        return Ok(None);
-    }
-
-    let start = set_start(start, Some(start), 2);
-    let mut end = end;
-    // let user_info_end = get_user_info_end(s, start, end)?;
-    // start = set_start(start, user_info_end, 1);
-    if let Some(pos) = s[start..end].find('/') {
-        end = set_end(end, Some(start + pos), 0);
-    }
-    let authority = s[start..end].parse::<Authority>()?;
-    // let host_end = get_host_end(s, start, end)?;
-    // start = set_end(start, Some(host_end), 0);
-    // if end > start {
-    //     let _ = check_port(s, start, end)?;
-    // }
-    Ok(Some(authority))
-}
-
-fn get_path(s: &str, start: usize, end: usize) -> Option<usize> {
-    s[start..end].find('/').map(|pos| start + pos)
+    pub(crate) inner: String,
+    pub(crate) scheme: RangeUsize,
+    pub(crate) path: Option<RangeUsize>,
+    pub(crate) query: Option<RangeUsize>,
+    pub(crate) fragment: Option<RangeUsize>,
+    pub(crate) authority: Option<Authority>,
 }
 
 impl TryFrom<String> for Uri {
@@ -208,7 +134,21 @@ impl Uri {
     }
 
     pub fn scheme(&self) -> &str {
-        &self.inner[0..self.scheme]
+        &self.inner[self.scheme]
+    }
+
+    pub fn username(&self) -> Option<&str> {
+        self.authority
+            .clone()
+            .and_then(|a| a.username)
+            .and_then(|u| Some(&self.inner[u.shift(self.scheme.len() + 3)]))
+    }
+
+    pub fn password(&self) -> Option<&str> {
+        self.authority
+            .clone()
+            .and_then(|a| a.password)
+            .and_then(|u| Some(&self.inner[u.shift(self.scheme.len() + 3)]))
     }
 
     // pub fn authority(&self) -> Authority {
@@ -216,7 +156,7 @@ impl Uri {
     // }
 
     // pub fn user_info(&self) -> Option<&str> {
-    //     if let Some(authority) = self.authority {
+    //     self.authority.clone().map(|a| &self.inner[a.host.shift(self.scheme.len() + 3)]) {
     //         Some(authority.user_info())
     //     } else {
     //         None
@@ -231,9 +171,11 @@ impl Uri {
     //     self.authority.decode_password()
     // }
 
-    // pub fn host(&self) -> &str {
-    //     self.authority.host()
-    // }
+    pub fn host(&self) -> Option<&str> {
+        self.authority
+            .clone()
+            .map(|a| &self.inner[a.host.shift(self.scheme.len() + 3)])
+    }
 
     // pub fn host_header(&self) -> String {
     //     match self.default_port() {
@@ -314,23 +256,11 @@ impl Uri {
     // }
 
     pub fn query(&self) -> Option<&str> {
-        if let Some(query_start) = self.query_start {
-            if let Some(fragment_start) = self.fragment_start {
-                Some(&self.inner[query_start..fragment_start - 1])
-            } else {
-                Some(&self.inner[query_start..])
-            }
-        } else {
-            None
-        }
+        self.query.map(|range| &self.inner[range])
     }
 
     pub fn fragment(&self) -> Option<&str> {
-        if let Some(fragment_start) = self.fragment_start {
-            Some(&self.inner[fragment_start..fragment_start])
-        } else {
-            None
-        }
+        self.fragment.map(|range| &self.inner[range])
     }
 
     // pub fn request_uri(&self) -> &str {
@@ -389,7 +319,7 @@ impl Uri {
     // }
 
     pub fn has_authority(&self) -> bool {
-        self.authority_end.is_some()
+        self.authority.is_some()
     }
 
     // pub fn addr(&self) -> Addr {
@@ -453,35 +383,97 @@ impl FromStr for Uri {
 
     fn from_str(s: &str) -> Result<Self> {
         let mut inner = s.to_string();
-        let mut start = 0;
-        let mut end = s.len();
-        let scheme = get_scheme(s)?;
-        start = set_start(start, Some(scheme), 1);
-        let lower_scheme = &s[..scheme].to_lowercase();
-        inner.replace_range(..scheme, lower_scheme);
+        let mut chunk = RangeUsize::new(0, s.len());
 
-        let fragment_start = get_fragment(s, start);
-        end = set_end(end, fragment_start, 1);
+        let scheme = get_scheme(s, &mut chunk)?;
+        let lower_scheme = &s[scheme].to_lowercase();
+        inner.replace_range(scheme.range(), lower_scheme);
 
-        let query_start = get_query(s, start, end);
-        end = set_end(end, query_start, 1);
+        let fragment = get_fragment(s, &mut chunk);
 
-        let authority = get_authority(s, start, end)?;
-        let authority_end = authority.map(|a| a.len());
-        start = set_start(start, authority_end, 0);
+        let query = get_query(s, &mut chunk);
 
-        let path_start = get_path(s, start, end);
+        let authority = get_authority(s, &mut chunk)?;
+
+        let path = get_path(s, &mut chunk);
 
         Ok(Uri {
             inner,
             scheme,
-            authority_end,
-            path_start,
-            query_start,
-            fragment_start,
+            path,
+            query,
+            fragment,
             authority,
         })
     }
+}
+
+fn check_scheme(scheme: &str) -> Result<()> {
+    if scheme.is_empty() {
+        return Err(Error::EmptyScheme);
+    }
+    if scheme.char_indices().all(|(pos, ch)| {
+        if pos == 0 {
+            ch.is_alphabetic()
+        } else {
+            ch.is_alphanumeric() || ch == '+' || ch == '.' || ch == '-'
+        }
+    }) {
+        Ok(())
+    } else {
+        Err(Error::InvalidScheme(scheme.to_string()))
+    }
+}
+
+fn get_scheme(s: &str, chunk: &mut RangeUsize) -> Result<RangeUsize> {
+    match s.find(':') {
+        Some(pos) => {
+            let scheme = RangeUsize::new(0, pos);
+            check_scheme(&s[scheme])?;
+            chunk.start(scheme.end + 1);
+            Ok(scheme)
+        }
+        None => Err(Error::EmptyScheme),
+    }
+}
+
+fn get_fragment(s: &str, chunk: &mut RangeUsize) -> Option<RangeUsize> {
+    s[&chunk]
+        .find('#')
+        .filter(|pos| pos <= &s.len())
+        .map(|pos| {
+            let start = chunk.start + pos + 1;
+            chunk.end(start - 1);
+            RangeUsize::new(start, s[&chunk].len())
+        })
+}
+
+fn get_query(s: &str, chunk: &mut RangeUsize) -> Option<RangeUsize> {
+    s[&chunk]
+        .find('?')
+        .filter(|pos| pos <= &s.len())
+        .map(|pos| {
+            let start = chunk.start + pos + 1;
+            chunk.end(start - 1);
+            RangeUsize::new(start, s[&chunk].len())
+        })
+}
+
+fn get_authority(s: &str, chunk: &mut RangeUsize) -> Result<Option<Authority>> {
+    if !s[&chunk].starts_with("//") {
+        return Ok(None);
+    }
+    let mut range = RangeUsize::new(chunk.start + 2, chunk.end);
+    s[range].find('/').map(|pos| range.end(range.start + pos));
+    let authority = s[range].parse::<Authority>()?;
+    chunk.start(range.end);
+    Ok(Some(authority))
+}
+
+fn get_path(s: &str, chunk: &mut RangeUsize) -> Option<RangeUsize> {
+    s[&chunk]
+        .find('/')
+        .map(|pos| RangeUsize::new(chunk.start + pos, chunk.end))
 }
 
 // fn remove_spaces(text: &mut String) {
@@ -552,23 +544,23 @@ mod tests {
     //         assert_eq!(uri.decode_password(), Some("pa?sword".to_owned()));
     //     }
 
-    //     #[test]
-    //     fn host_t1() {
-    //         let uri = "http://www.example.org".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.host(), "www.example.org");
-    //     }
+    #[test]
+    fn host_t1() {
+        let uri = "http://www.example.org".parse::<Uri>().unwrap();
+        assert_eq!(uri.host(), Some("www.example.org"));
+    }
 
-    //     #[test]
-    //     fn host_t2() {
-    //         let uri = "ftp://webmaster@www.example.org/".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.host(), "www.example.org");
-    //     }
+    #[test]
+    fn host_t2() {
+        let uri = "ftp://webmaster@www.example.org/".parse::<Uri>().unwrap();
+        assert_eq!(uri.host(), Some("www.example.org"));
+    }
 
-    //     #[test]
-    //     fn host_t3() {
-    //         let uri = "http://%3Fam:pa%3Fsword@google.com".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.host(), "google.com");
-    //     }
+    #[test]
+    fn host_t3() {
+        let uri = "http://%3Fam:pa%3Fsword@google.com".parse::<Uri>().unwrap();
+        assert_eq!(uri.host(), Some("google.com"));
+    }
 
     //     #[test]
     //     fn host_t4() {

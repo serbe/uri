@@ -1,4 +1,4 @@
-use crate::error::{Error, Result};
+use crate::error::Result;
 use crate::uri::Uri;
 
 // mod addr;
@@ -25,5 +25,10 @@ fn main() -> Result<()> {
     let uri = s.parse::<Uri>()?;
     assert_eq!(uri.scheme(), "asd");
     println!("{:?}", uri);
+
+    let authority = "www.example.org".parse::<authority::Authority>().unwrap();
+    println!("{:?}", authority);
+    assert_eq!(authority.host(), "www.example.org");
+
     Ok(())
 }
