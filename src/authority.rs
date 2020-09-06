@@ -1,12 +1,11 @@
 use std::fmt;
-use std::ops::Range;
 use std::str::FromStr;
 
 use base64::encode;
 use percent_encoding::percent_decode_str;
 
 use crate::error::{Error, Result};
-use crate::range::{get_chunks, RangeUsize};
+use crate::utils::{set_start, set_end, RangeUsize};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Authority {
@@ -14,12 +13,13 @@ pub struct Authority {
     username: Option<RangeUsize>,
     password: Option<RangeUsize>,
     host: RangeUsize,
-    port: Option<RangeUsize>,
+    port: Option<u16>,
 }
 
 impl Authority {
     pub fn username(&self) -> Option<&str> {
-        self.username.map(|r| &self.inner[r])
+        self.username
+            .map(|username| &self.inner[username])
     }
 
     pub fn decode_username(&self) -> Option<String> {
@@ -31,7 +31,7 @@ impl Authority {
     }
 
     pub fn password(&self) -> Option<&str> {
-        self.password.map(|r| &self.inner[r])
+        self.password.map(|password| &self.inner[password])
     }
 
     pub fn decode_password(&self) -> Option<String> {
@@ -43,15 +43,15 @@ impl Authority {
     }
 
     pub fn user_info(&self) -> Option<&str> {
-        match (&self.username, &self.password) {
-            (Some(u), Some(p)) => Some(&self.inner[u.start..p.end]),
-            (Some(u), None) => Some(&self.inner[*u]),
+        match (&self.username_end, &self.password_end) {
+            (Some(_), Some(password_end)) => Some(&self.inner[..*password_end]),
+            (Some(username_end), None) => Some(&self.inner[..*username_end]),
             _ => None,
         }
     }
 
     pub fn host(&self) -> &str {
-        &self.inner[self.host]
+        // &self.inner[self.host]
     }
 
     pub fn port(&self) -> Option<u16> {
@@ -67,6 +67,10 @@ impl Authority {
             _ => None,
         }
     }
+
+    pub fn len(&self) -> usize {
+        self.inner.len()
+    }
 }
 
 impl FromStr for Authority {
@@ -74,6 +78,19 @@ impl FromStr for Authority {
 
     fn from_str(s: &str) -> Result<Self> {
         let inner = s.to_string();
+
+        let mut start = 0;
+        let mut end = s.len();
+
+        let username_end = get_username_end(s)?;
+        let user_info_end = get_user_info_end(s)?;
+    // start = set_start(start, user_info_end, 1);
+    // let authority = s[start..end].parse::<Authority>()?;
+    // let host_end = get_host_end(s, start, end)?;
+    // start = set_end(start, Some(host_end), 0);
+    // if end > start {
+    //     let _ = check_port(s, start, end)?;
+    // }
 
         let mut username = None;
         let mut password = None;
@@ -106,7 +123,7 @@ impl FromStr for Authority {
 
         Ok(Authority {
             inner,
-            username,
+            username_end,
             password,
             host,
             port,
@@ -129,6 +146,47 @@ impl fmt::Display for Authority {
         };
 
         write!(f, "{}", auth)
+    }
+}
+
+fn contain_reserver_char(s: &str) -> bool {
+    s.chars()
+        .any(|ch| [':', '/', '?', '#', '[', ']', '@'].contains(&ch))
+}
+
+fn check_user_info(s: &str) -> Result<()> {
+    if let Some(colon_pos) = s.find(':') {
+        if colon_pos == 0 {
+            Err(Error::EmptyUsername)
+        } else if contain_reserver_char(&s[..colon_pos]) {
+            Err(Error::InvalidUsername(
+                s[..colon_pos].to_string(),
+            ))
+        } else if contain_reserver_char(&s[colon_pos + 1..]) {
+            Err(Error::InvalidPassword(
+                s[colon_pos..].to_string(),
+            ))
+        } else {
+            Ok(())
+        }
+    } else {
+        if s.is_empty() {
+            Err(Error::EmptyUsername)
+        } else if contain_reserver_char(&s) {
+            Err(Error::InvalidUsername(s.to_string()))
+        } else {
+            Ok(())
+        }
+    }?;
+    Ok(())
+}
+
+fn get_user_info_end(s: &str) -> Result<Option<usize>> {
+    if let Some(pos) = s.find('@') {
+        let _ = check_user_info(&s[..pos])?;
+        Ok(Some(pos))
+    } else {
+        Ok(None)
     }
 }
 

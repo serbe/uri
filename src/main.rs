@@ -3,8 +3,8 @@ use crate::uri::Uri;
 
 // mod addr;
 mod error;
-// mod range;
-// mod authority;
+mod utils;
+mod authority;
 mod uri;
 
 // fn get_range(s: &str, ch: char) {

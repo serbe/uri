@@ -9,13 +9,13 @@
 
 // pub use crate::uri::Uri;
 pub use addr::Addr;
-pub use authority::Authority;
+// pub use authority::Authority;
 pub use error::{Error, Result};
 
 mod addr;
-mod authority;
+// mod authority;
 mod error;
-mod range;
+mod utils;
 // mod uri;
 
 // scheme      = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
