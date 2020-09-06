@@ -2,10 +2,10 @@ use crate::error::{Error, Result};
 use crate::uri::Uri;
 
 // mod addr;
-mod error;
-mod utils;
 mod authority;
+mod error;
 mod uri;
+mod utils;
 
 // fn get_range(s: &str, ch: char) {
 //     println!("{:?}", s.contains(ch));

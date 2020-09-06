@@ -1,11 +1,12 @@
 use std::fmt;
+use std::ops::Add;
 use std::str::FromStr;
 
 use base64::encode;
 use percent_encoding::percent_decode_str;
 
 use crate::error::{Error, Result};
-use crate::utils::{set_start, set_end, RangeUsize};
+use crate::utils::{set_end, set_start, RangeUsize};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Authority {
@@ -18,8 +19,7 @@ pub struct Authority {
 
 impl Authority {
     pub fn username(&self) -> Option<&str> {
-        self.username
-            .map(|username| &self.inner[username])
+        self.username.map(|username| &self.inner[username])
     }
 
     pub fn decode_username(&self) -> Option<String> {
@@ -43,22 +43,19 @@ impl Authority {
     }
 
     pub fn user_info(&self) -> Option<&str> {
-        match (&self.username_end, &self.password_end) {
-            (Some(_), Some(password_end)) => Some(&self.inner[..*password_end]),
-            (Some(username_end), None) => Some(&self.inner[..*username_end]),
+        match (&self.username, &self.password) {
+            (Some(_), Some(password)) => Some(&self.inner[password.to()]),
+            (Some(username), None) => Some(&self.inner[username]),
             _ => None,
         }
     }
 
     pub fn host(&self) -> &str {
-        // &self.inner[self.host]
+        &self.inner[self.host]
     }
 
     pub fn port(&self) -> Option<u16> {
-        match &self.port {
-            Some(p) => Some(self.inner[*p].parse().unwrap()),
-            None => None,
-        }
+        self.port
     }
 
     pub fn base64_auth(&self) -> Option<String> {
@@ -73,24 +70,92 @@ impl Authority {
     }
 }
 
+fn contain_reserver_char(s: &str) -> bool {
+    s.chars()
+        .any(|ch| [':', '/', '?', '#', '[', ']', '@'].contains(&ch))
+}
+
+fn check_user_info(s: &str) -> Result<()> {
+    if let Some(colon_pos) = s.find(':') {
+        if colon_pos == 0 {
+            Err(Error::EmptyUsername)
+        } else if contain_reserver_char(&s[..colon_pos]) {
+            Err(Error::InvalidUsername(s[..colon_pos].to_string()))
+        } else if contain_reserver_char(&s[colon_pos + 1..]) {
+            Err(Error::InvalidPassword(s[colon_pos..].to_string()))
+        } else {
+            Ok(())
+        }
+    } else {
+        if s.is_empty() {
+            Err(Error::EmptyUsername)
+        } else if contain_reserver_char(&s) {
+            Err(Error::InvalidUsername(s.to_string()))
+        } else {
+            Ok(())
+        }
+    }?;
+    Ok(())
+}
+
+fn get_user_info(s: &str, chunk: &mut RangeUsize) -> Option<RangeUsize> {
+    s.find('@').map(|pos| {
+        chunk.start(pos + 1);
+        RangeUsize::new(0, pos)
+    })
+}
+
+fn get_username(s: &str) -> Option<RangeUsize> {
+    match s.find(':') {
+        Some(pos) => Some(RangeUsize::new(0, pos)),
+        None =>        Some(RangeUsize::new(0, s.len())),
+    }
+}
+
+fn get_password(s: &str) -> Option<RangeUsize> {
+    match s.find(':') {
+        Some(pos) => Some(RangeUsize::new(pos+1, s.len())),
+        None =>        None,
+    }
+}
+
+fn get_host(s: &str, chunk: &mut RangeUsize) -> Result<RangeUsize> {
+    if s[chunk].is_empty() {
+        Err(Error::EmptyHost)
+    } else {
+        let split_at = if s[chunk].starts_with('[') && s[chunk].contains(']') {
+            "]:"
+        } else {
+            ":"
+        };
+        Ok(if let Some(pos) = s[chunk].rfind(split_at) {
+            chunk.end(start + pos + split_at.len())
+        } else {
+            end
+        })
+    }
+}
+
 impl FromStr for Authority {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self> {
         let inner = s.to_string();
 
-        let mut start = 0;
-        let mut end = s.len();
-
-        let username_end = get_username_end(s)?;
-        let user_info_end = get_user_info_end(s)?;
-    // start = set_start(start, user_info_end, 1);
-    // let authority = s[start..end].parse::<Authority>()?;
-    // let host_end = get_host_end(s, start, end)?;
-    // start = set_end(start, Some(host_end), 0);
-    // if end > start {
-    //     let _ = check_port(s, start, end)?;
-    // }
+        let mut chunk = RangeUsize::new(0, s.len());
+        let mut username= None;
+        let mut password = None;
+        let user_info = get_user_info(s, &mut chunk);
+        if let Some(range) = user_info {
+            check_user_info(&inner[range])?;
+            username = get_username(&inner[range]);
+            password = get_password(&inner[range]);
+        };
+        let host = get_host(s, &mut chunk)?;
+        // start = set_end(start, Some(host_end), 0);
+        // if end > start {
+        //     let _ = check_port(s, start, end)?;
+        // }
 
         let mut username = None;
         let mut password = None;
@@ -146,47 +211,6 @@ impl fmt::Display for Authority {
         };
 
         write!(f, "{}", auth)
-    }
-}
-
-fn contain_reserver_char(s: &str) -> bool {
-    s.chars()
-        .any(|ch| [':', '/', '?', '#', '[', ']', '@'].contains(&ch))
-}
-
-fn check_user_info(s: &str) -> Result<()> {
-    if let Some(colon_pos) = s.find(':') {
-        if colon_pos == 0 {
-            Err(Error::EmptyUsername)
-        } else if contain_reserver_char(&s[..colon_pos]) {
-            Err(Error::InvalidUsername(
-                s[..colon_pos].to_string(),
-            ))
-        } else if contain_reserver_char(&s[colon_pos + 1..]) {
-            Err(Error::InvalidPassword(
-                s[colon_pos..].to_string(),
-            ))
-        } else {
-            Ok(())
-        }
-    } else {
-        if s.is_empty() {
-            Err(Error::EmptyUsername)
-        } else if contain_reserver_char(&s) {
-            Err(Error::InvalidUsername(s.to_string()))
-        } else {
-            Ok(())
-        }
-    }?;
-    Ok(())
-}
-
-fn get_user_info_end(s: &str) -> Result<Option<usize>> {
-    if let Some(pos) = s.find('@') {
-        let _ = check_user_info(&s[..pos])?;
-        Ok(Some(pos))
-    } else {
-        Ok(None)
     }
 }
 

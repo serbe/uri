@@ -11,7 +11,7 @@ use percent_encoding::percent_decode_str;
 // use crate::addr::Addr;
 use crate::authority::Authority;
 use crate::error::{Error, Result};
-use crate::utils::{set_start, set_end};
+use crate::utils::{set_end, set_start};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Uri {
@@ -63,23 +63,6 @@ fn get_query(s: &str, start: usize, end: usize) -> Option<usize> {
         .find('?')
         .filter(|pos| pos <= &s.len())
         .map(|pos| start + pos + 1)
-}
-
-fn get_host_end(s: &str, start: usize, end: usize) -> Result<usize> {
-    if s[start..end].is_empty() {
-        Err(Error::EmptyHost)
-    } else {
-        let split_at = if s[start..end].starts_with('[') && s[start..end].contains(']') {
-            "]:"
-        } else {
-            ":"
-        };
-        Ok(if let Some(pos) = s[start..end].rfind(split_at) {
-            start + pos + split_at.len()
-        } else {
-            end
-        })
-    }
 }
 
 fn check_port(s: &str, start: usize, end: usize) -> Result<()> {
@@ -483,7 +466,6 @@ impl FromStr for Uri {
         let query_start = get_query(s, start, end);
         end = set_end(end, query_start, 1);
 
-        
         let authority = get_authority(s, start, end)?;
         let authority_end = authority.map(|a| a.len());
         start = set_start(start, authority_end, 0);
