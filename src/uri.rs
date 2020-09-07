@@ -450,9 +450,9 @@ fn get_fragment(s: &str, chunk: &mut RangeUsize) -> Option<RangeUsize> {
         .find('#')
         .filter(|pos| pos <= &s.len())
         .map(|pos| {
-            let start = chunk.start + pos + 1;
-            chunk.end(start - 1);
-            RangeUsize::new(start, s[&chunk].len())
+            let end = chunk.end;
+            chunk.end(chunk.start + pos);
+            RangeUsize::new(chunk.start + pos + 1, end)
         })
 }
 
@@ -461,9 +461,9 @@ fn get_query(s: &str, chunk: &mut RangeUsize) -> Option<RangeUsize> {
         .find('?')
         .filter(|pos| pos <= &s.len())
         .map(|pos| {
-            let start = chunk.start + pos + 1;
-            chunk.end(start - 1);
-            RangeUsize::new(start, s[&chunk].len())
+            let end = chunk.end;
+            chunk.end(chunk.start + pos);
+            RangeUsize::new(chunk.start + pos + 1, end)
         })
 }
 
@@ -826,21 +826,23 @@ mod tests {
     //     assert_eq!(uri.addr_port(), vec![0u8, 80u8]);
     // }
 
-    // #[test]
-    // fn path_without_leading() {
-    //         //     let uri = "http:%2f%2fwww.example.org/?q=rust+language".parse::<Uri>().unwrap();
-    //     assert_eq!(uri.scheme(), "http");
-    //     // Opaque:   "%2f%2fwww.example.org/",
-    //     u.query = Some("q=rust+language");
-    //         // }
+    #[test]
+    fn path_without_leading() {
+        let uri = "http:%2f%2fwww.example.org/?q=rust+language"
+            .parse::<Uri>()
+            .unwrap();
+        assert_eq!(uri.scheme(), "http");
+        // Opaque:   "%2f%2fwww.example.org/",
+        assert_eq!(uri.query(), Some("q=rust+language"));
+    }
 
     // #[test]
     // fn host_subcomponent3() {
-    //         //     let uri = "http://[fe80::1%25en0]/".parse::<Uri>().unwrap();
+    //             let uri = "http://[fe80::1%25en0]/".parse::<Uri>().unwrap();
     //     assert_eq!(uri.scheme(), "http");
     //     u.host = "[fe80::1%en0]";
     //     assert_eq!(uri.path(), Some("/"));
-    //         // }
+    //         }
 
     // #[test]
     // fn host_and_port_subcomponents3() {
