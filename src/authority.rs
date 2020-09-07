@@ -131,7 +131,7 @@ fn get_host(s: &str, chunk: &mut RangeUsize) -> Result<RangeUsize> {
         let start = chunk.start;
         let host = if let Some(pos) = s[&chunk].rfind(split_at) {
             chunk.start(chunk.start + pos + split_at.len());
-            RangeUsize::new(start, chunk.start - split_at.len())
+            RangeUsize::new(start, chunk.start - 1)
         } else {
             chunk.start(chunk.end);
             RangeUsize::new(start, chunk.end)

@@ -562,41 +562,41 @@ mod tests {
         assert_eq!(uri.host(), Some("google.com"));
     }
 
-    //     #[test]
-    //     fn host_t4() {
-    //         let uri = "http://192.168.0.1:8080/".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.host(), "192.168.0.1");
-    //     }
+        #[test]
+        fn host_t4() {
+            let uri = "http://192.168.0.1:8080/".parse::<Uri>().unwrap();
+            assert_eq!(uri.host(), Some("192.168.0.1"));
+        }
 
-    //     #[test]
-    //     fn host_t5() {
-    //         let uri = "http://[fe80::1]:8080/".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.host(), "[fe80::1]");
-    //     }
+        #[test]
+        fn host_t5() {
+            let uri = "http://[fe80::1]:8080/".parse::<Uri>().unwrap();
+            assert_eq!(uri.host(), Some("[fe80::1]"));
+        }
 
-    //     #[test]
-    //     fn host_t6() {
-    //         let uri = "mysql://a,b,c/bar".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.host(), "a,b,c");
-    //     }
+        #[test]
+        fn host_t6() {
+            let uri = "mysql://a,b,c/bar".parse::<Uri>().unwrap();
+            assert_eq!(uri.host(), Some("a,b,c"));
+        }
 
-    //     #[test]
-    //     fn host_t7() {
-    //         let uri = "scheme://!$&'()*+,;=hello!:23/path".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.host(), "!$&'()*+,;=hello!");
-    //     }
+        #[test]
+        fn host_t7() {
+            let uri = "scheme://!$&'()*+,;=hello!:23/path".parse::<Uri>().unwrap();
+            assert_eq!(uri.host(), Some("!$&'()*+,;=hello!"));
+        }
 
-    //     #[test]
-    //     fn host_t8() {
-    //         let uri = "myscheme://authority<\"hi\">/foo".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.host(), "authority<\"hi\">");
-    //     }
+        #[test]
+        fn host_t8() {
+            let uri = "myscheme://authority<\"hi\">/foo".parse::<Uri>().unwrap();
+            assert_eq!(uri.host(), Some("authority<\"hi\">"));
+        }
 
-    //     #[test]
-    //     fn host_t9() {
-    //         let uri = "http://hello.世界.com/foo".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.host(), "hello.世界.com");
-    //     }
+        #[test]
+        fn host_t9() {
+            let uri = "http://hello.世界.com/foo".parse::<Uri>().unwrap();
+            assert_eq!(uri.host(), Some("hello.世界.com"));
+        }
 
     //     #[test]
     //     fn host_header_t1() {
@@ -842,7 +842,7 @@ mod tests {
     //     // fn host_and_port_subcomponents3() {
     //     //     let uri = "http://[fe80::1%25en0]:8080/".parse::<Uri>().unwrap();
     //     //     assert_eq!(uri.scheme(), "http");
-    //     //     assert_eq!(uri.host(), "[fe80::1%en0]");
+    //     //     assert_eq!(uri.host(), Some("[fe80::1%en0]"));
     //     //     assert_eq!(uri.port(), Some(8080));
     //     //     assert_eq!(uri.path(), Some("/"));
     //     // }
@@ -859,8 +859,8 @@ mod tests {
     //     // fn host_and_port_subcomponents4() {
     //     //             let uri = "http:[fe80::1%25%65%6e%301-._~]:8080/".parse::<Uri>().unwrap();
     //     //     assert_eq!(uri.scheme(), "http");
-    //     //     assert_eq!(uri.host(), "[fe80::1%25%65%6e%301-._~]");
-    //     //     // assert_eq!(uri.host(), "[fe80::1%en01-._~]");
+    //     //     assert_eq!(uri.host(), Some("[fe80::1%25%65%6e%301-._~]"));
+    //     //     // assert_eq!(uri.host(), Some("[fe80::1%en01-._~]"));
     //     //     assert_eq!(uri.port(), Some(8080));
     //     //     assert_eq!(uri.path(), Some("/"));
     //     //         }
@@ -869,7 +869,7 @@ mod tests {
     //     // fn host_subcomponent4() {
     //     //     let uri = "http://192.168.0.2:/foo".parse::<Uri>().unwrap();
     //     //     assert_eq!(uri.scheme(), "http");
-    //     //     assert_eq!(uri.host(), "192.168.0.2:");
+    //     //     assert_eq!(uri.host(), Some("192.168.0.2:"));
     //     //     assert_eq!(uri.path(), Some("/foo"));
     //     // }
 
@@ -891,7 +891,7 @@ mod tests {
     //     // fn ipv6_2() {
     //     //          //      let uri = "http:[2b01:e34:ef40:7730:8e70:5aff:fefe:edac]:8080/foo".parse::<Uri>().unwrap();
     //     //      		assert_eq!(uri.scheme(), "http");
-    //     //      		assert_eq!(uri.host(), "[2b01:e34:ef40:7730:8e70:5aff:fefe:edac]:8080");
+    //     //      		assert_eq!(uri.host(), Some("[2b01:e34:ef40:7730:8e70:5aff:fefe:edac]:8080"));
     //     //      		assert_eq!(uri.path(), Some("/foo"));
     //     //          // }
 
