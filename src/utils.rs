@@ -1,5 +1,8 @@
+use std::cmp::{max, min};
 use std::convert::From;
-use std::ops::{Index, Range, RangeTo};
+use std::ops::{Add, Index, Range, RangeTo};
+
+use percent_encoding::percent_decode_str;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct RangeUsize {
@@ -44,14 +47,16 @@ impl RangeUsize {
     }
 }
 
-// impl From<RangeUsize> for Range<usize> {
-//     fn from(range_usize: RangeUsize) -> Self {
-//         Range {
-//             start: range_usize.start,
-//             end: range_usize.end,
-//         }
-//     }
-// }
+impl Add for RangeUsize {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        Self {
+            start: min(self.start, other.start),
+            end: max(self.end, other.end),
+        }
+    }
+}
 
 // impl From<&RangeUsize> for Range<usize> {
 //     fn from(range_usize: &RangeUsize) -> Self {
@@ -133,3 +138,9 @@ impl Index<&RangeUsize> for String {
 //         end
 //     }
 // }
+
+pub(crate) fn decode(v: &str) -> Option<String> {
+    percent_decode_str(v)
+        .decode_utf8()
+        .map_or(None, |op| Some(op.to_string()))
+}

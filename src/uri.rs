@@ -11,7 +11,7 @@ use percent_encoding::percent_decode_str;
 // use crate::addr::Addr;
 use crate::authority::Authority;
 use crate::error::{Error, Result};
-use crate::utils::RangeUsize;
+use crate::utils::{decode, RangeUsize};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Uri {
@@ -20,6 +20,7 @@ pub struct Uri {
     pub(crate) path: Option<RangeUsize>,
     pub(crate) query: Option<RangeUsize>,
     pub(crate) fragment: Option<RangeUsize>,
+    // pub(crate) authority_noempty: Option<RangeUsize>,
     pub(crate) authority: Option<Authority>,
 }
 
@@ -137,39 +138,47 @@ impl Uri {
         &self.inner[self.scheme]
     }
 
+    fn scheme_shift(&self) -> usize {
+        self.scheme.len() + 3
+    }
+
     pub fn username(&self) -> Option<&str> {
         self.authority
             .clone()
             .and_then(|a| a.username)
-            .and_then(|u| Some(&self.inner[u.shift(self.scheme.len() + 3)]))
+            .and_then(|u| Some(&self.inner[u.shift(self.scheme_shift())]))
     }
 
     pub fn password(&self) -> Option<&str> {
         self.authority
             .clone()
             .and_then(|a| a.password)
-            .and_then(|u| Some(&self.inner[u.shift(self.scheme.len() + 3)]))
+            .and_then(|u| Some(&self.inner[u.shift(self.scheme_shift())]))
     }
 
-    // pub fn authority(&self) -> Authority {
-    //     self.authority.clone()
-    // }
+    pub fn authority(&self) -> Option<Authority> {
+        self.authority.clone()
+    }
 
-    // pub fn user_info(&self) -> Option<&str> {
-    //     self.authority.clone().map(|a| &self.inner[a.host.shift(self.scheme.len() + 3)]) {
-    //         Some(authority.user_info())
-    //     } else {
-    //         None
-    //     }
-    // }
+    pub fn user_info(&self) -> Option<&str> {
+        self.authority
+            .clone()
+            .and_then(|a| match (a.username, a.password) {
+                (Some(_), Some(password)) => {
+                    Some(&self.inner[self.scheme_shift()..password.end + self.scheme_shift()])
+                }
+                (Some(username), None) => Some(&self.inner[username.shift(self.scheme_shift())]),
+                _ => None,
+            })
+    }
 
-    // pub fn decode_username(&self) -> Option<String> {
-    //     self.authority.decode_username()
-    // }
+    pub fn decode_username(&self) -> Option<String> {
+        self.username().and_then(|username| decode(username))
+    }
 
-    // pub fn decode_password(&self) -> Option<String> {
-    //     self.authority.decode_password()
-    // }
+    pub fn decode_password(&self) -> Option<String> {
+        self.password().and_then(|password| decode(password))
+    }
 
     pub fn host(&self) -> Option<&str> {
         self.authority
@@ -177,83 +186,79 @@ impl Uri {
             .map(|a| &self.inner[a.host.shift(self.scheme.len() + 3)])
     }
 
-    // pub fn host_header(&self) -> String {
-    //     match self.default_port() {
-    //         Some(p) if p == 80 || p == 8080 => self.host().to_string(),
-    //         Some(p) => format!("{}:{}", self.host(), p),
-    //         None => self.host().to_string(),
-    //     }
-    // }
+    pub fn host_header(&self) -> String {
+        match (self.host(), self.default_port()) {
+            (Some(host), Some(port)) if port == 80 || port == 8080 => host.to_string(),
+            (Some(host), Some(port)) => format!("{}:{}", host, port),
+            _ => String::new(),
+        }
+    }
 
-    // pub fn port(&self) -> Option<u16> {
-    //     self.authority.port()
-    // }
+    pub fn port(&self) -> Option<u16> {
+        self.authority().and_then(|authority| authority.port())
+    }
 
-    // pub fn default_port(&self) -> Option<u16> {
-    //     match self.authority.port() {
-    //         Some(port) => Some(port),
-    //         None => match self.scheme() {
-    //             "acap" => Some(674),
-    //             "afp" => Some(548),
-    //             "dict" => Some(2628),
-    //             "dns" => Some(53),
-    //             "file" => None,
-    //             "ftp" => Some(21),
-    //             "git" => Some(9418),
-    //             "gopher" => Some(70),
-    //             "http" => Some(80),
-    //             "https" => Some(443),
-    //             "imap" => Some(143),
-    //             "ipp" => Some(631),
-    //             "ipps" => Some(631),
-    //             "irc" => Some(194),
-    //             "ircs" => Some(6697),
-    //             "ldap" => Some(389),
-    //             "ldaps" => Some(636),
-    //             "mms" => Some(1755),
-    //             "msrp" => Some(2855),
-    //             "msrps" => None,
-    //             "mtqp" => Some(1038),
-    //             "nfs" => Some(111),
-    //             "nntp" => Some(119),
-    //             "nntps" => Some(563),
-    //             "pop" => Some(110),
-    //             "prospero" => Some(1525),
-    //             "redis" => Some(6379),
-    //             "rsync" => Some(873),
-    //             "rtsp" => Some(554),
-    //             "rtsps" => Some(322),
-    //             "rtspu" => Some(5005),
-    //             "sftp" => Some(22),
-    //             "smb" => Some(445),
-    //             "snmp" => Some(161),
-    //             "socks5" => Some(1080),
-    //             "socks5h" => Some(1080),
-    //             "ssh" => Some(22),
-    //             "steam" => None,
-    //             "svn" => Some(3690),
-    //             "telnet" => Some(23),
-    //             "ventrilo" => Some(3784),
-    //             "vnc" => Some(5900),
-    //             "wais" => Some(210),
-    //             "ws" => Some(80),
-    //             "wss" => Some(443),
-    //             _ => None,
-    //         },
-    //     }
-    // }
+    pub fn default_port(&self) -> Option<u16> {
+        match self.port() {
+            Some(port) => Some(port),
+            None => match self.scheme() {
+                "acap" => Some(674),
+                "afp" => Some(548),
+                "dict" => Some(2628),
+                "dns" => Some(53),
+                "file" => None,
+                "ftp" => Some(21),
+                "git" => Some(9418),
+                "gopher" => Some(70),
+                "http" => Some(80),
+                "https" => Some(443),
+                "imap" => Some(143),
+                "ipp" => Some(631),
+                "ipps" => Some(631),
+                "irc" => Some(194),
+                "ircs" => Some(6697),
+                "ldap" => Some(389),
+                "ldaps" => Some(636),
+                "mms" => Some(1755),
+                "msrp" => Some(2855),
+                "msrps" => None,
+                "mtqp" => Some(1038),
+                "nfs" => Some(111),
+                "nntp" => Some(119),
+                "nntps" => Some(563),
+                "pop" => Some(110),
+                "prospero" => Some(1525),
+                "redis" => Some(6379),
+                "rsync" => Some(873),
+                "rtsp" => Some(554),
+                "rtsps" => Some(322),
+                "rtspu" => Some(5005),
+                "sftp" => Some(22),
+                "smb" => Some(445),
+                "snmp" => Some(161),
+                "socks5" => Some(1080),
+                "socks5h" => Some(1080),
+                "ssh" => Some(22),
+                "steam" => None,
+                "svn" => Some(3690),
+                "telnet" => Some(23),
+                "ventrilo" => Some(3784),
+                "vnc" => Some(5900),
+                "wais" => Some(210),
+                "ws" => Some(80),
+                "wss" => Some(443),
+                _ => None,
+            },
+        }
+    }
 
-    // pub fn path(&self) -> Option<&str> {
-    //     self.path.map(|r| &self.inner[r])
-    // }
+    pub fn path(&self) -> Option<&str> {
+        self.path.map(|r| &self.inner[r])
+    }
 
-    // pub fn decode_path(&self) -> Option<String> {
-    //     self.path().and_then(|v| {
-    //         percent_decode_str(v)
-    //             .decode_utf8()
-    //             .map_or(None, |op| Some(op.to_string()))
-    //     })
-    // }
+    pub fn decode_path(&self) -> Option<String> {
+        self.path().and_then(|path| decode(path))
+    }
 
     pub fn query(&self) -> Option<&str> {
         self.query.map(|range| &self.inner[range])
@@ -263,42 +268,45 @@ impl Uri {
         self.fragment.map(|range| &self.inner[range])
     }
 
-    // pub fn request_uri(&self) -> &str {
-    //     let mut result = "/";
+    pub fn request_uri(&self) -> &str {
+        let mut result = "/";
 
-    //     for v in &[self.path, self.query, self.fragment] {
-    //         if let Some(r) = v {
-    //             result = &self.inner[r.start..];
-    //             break;
-    //         }
-    //     }
+        for v in &[self.path, self.query, self.fragment] {
+            if let Some(r) = v {
+                result = &self.inner[r.start..];
+                break;
+            }
+        }
 
-    //     result
-    // }
+        result
+    }
 
-    // pub fn proxy_request_uri(&self) -> String {
-    //     let mut result = "/";
+    pub fn proxy_request_uri(&self) -> Option<String> {
+        let mut result = "/";
 
-    //     for v in &[self.path, self.query, self.fragment] {
-    //         if let Some(r) = v {
-    //             result = &self.inner[r.start..];
-    //             break;
-    //         }
-    //     }
+        for v in &[self.path, self.query, self.fragment] {
+            if let Some(r) = v {
+                result = &self.inner[r.start..];
+                break;
+            }
+        }
 
-    //     format!("{}://{}{}", self.scheme(), self.host_port(), result)
-    // }
+        self.host_port()
+            .map(|hp| format!("{}://{}{}", self.scheme(), hp, result).to_string())
+    }
 
-    // pub fn origin(&self) -> String {
-    //     format!("{}://{}", self.scheme(), self.host_port())
-    // }
+    pub fn origin(&self) -> Option<String> {
+        self.host_port()
+            .map(|hp| format!("{}://{}", self.scheme(), hp))
+    }
 
-    // pub fn host_port(&self) -> String {
-    //     match self.default_port() {
-    //         Some(port) => format!("{}:{}", self.host(), port),
-    //         None => self.host().to_string(),
-    //     }
-    // }
+    pub fn host_port(&self) -> Option<String> {
+        match (self.host(), self.default_port()) {
+            (Some(host), Some(port)) => Some(format!("{}:{}", host, port).to_string()),
+            (Some(host), None) => Some(host.to_string()),
+            _ => None,
+        }
+    }
 
     // pub fn socket_addrs(&self) -> Result<Vec<SocketAddr>> {
     //     Ok(self.host_port().to_socket_addrs()?.collect())
@@ -476,10 +484,6 @@ fn get_path(s: &str, chunk: &mut RangeUsize) -> Option<RangeUsize> {
         .map(|pos| RangeUsize::new(chunk.start + pos, chunk.end))
 }
 
-// fn remove_spaces(text: &mut String) {
-//     text.retain(|c| !c.is_whitespace());
-// }
-
 #[cfg(test)]
 mod tests {
     use crate::uri::Uri;
@@ -524,25 +528,25 @@ mod tests {
         assert_eq!(uri.scheme(), "http123s");
     }
 
-    // #[test]
-    // fn user_info_t1() {
-    //     let uri = "ftp://webmaster@www.example.org/".parse::<Uri>().unwrap();
-    //     assert_eq!(uri.user_info(), Some("webmaster"));
-    // }
+    #[test]
+    fn user_info_t1() {
+        let uri = "ftp://webmaster@www.example.org/".parse::<Uri>().unwrap();
+        assert_eq!(uri.user_info(), Some("webmaster"));
+    }
 
-    //     #[test]
-    //     fn user_info_t2() {
-    //         let uri = "ftp://john%20doe@www.example.org/".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.user_info(), Some("john%20doe"));
-    //     }
+    #[test]
+    fn user_info_t2() {
+        let uri = "ftp://john%20doe@www.example.org/".parse::<Uri>().unwrap();
+        assert_eq!(uri.user_info(), Some("john%20doe"));
+    }
 
-    //     #[test]
-    //     fn user_info_t3() {
-    //         let uri = "http://%3Fam:pa%3Fsword@google.com".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.user_info(), Some("%3Fam:pa%3Fsword"));
-    //         assert_eq!(uri.decode_username(), Some("?am".to_owned()));
-    //         assert_eq!(uri.decode_password(), Some("pa?sword".to_owned()));
-    //     }
+    #[test]
+    fn user_info_t3() {
+        let uri = "http://%3Fam:pa%3Fsword@google.com".parse::<Uri>().unwrap();
+        assert_eq!(uri.user_info(), Some("%3Fam:pa%3Fsword"));
+        assert_eq!(uri.decode_username(), Some("?am".to_owned()));
+        assert_eq!(uri.decode_password(), Some("pa?sword".to_owned()));
+    }
 
     #[test]
     fn host_t1() {
@@ -562,362 +566,362 @@ mod tests {
         assert_eq!(uri.host(), Some("google.com"));
     }
 
-        #[test]
-        fn host_t4() {
-            let uri = "http://192.168.0.1:8080/".parse::<Uri>().unwrap();
-            assert_eq!(uri.host(), Some("192.168.0.1"));
-        }
+    #[test]
+    fn host_t4() {
+        let uri = "http://192.168.0.1:8080/".parse::<Uri>().unwrap();
+        assert_eq!(uri.host(), Some("192.168.0.1"));
+    }
 
-        #[test]
-        fn host_t5() {
-            let uri = "http://[fe80::1]:8080/".parse::<Uri>().unwrap();
-            assert_eq!(uri.host(), Some("[fe80::1]"));
-        }
+    #[test]
+    fn host_t5() {
+        let uri = "http://[fe80::1]:8080/".parse::<Uri>().unwrap();
+        assert_eq!(uri.host(), Some("[fe80::1]"));
+    }
 
-        #[test]
-        fn host_t6() {
-            let uri = "mysql://a,b,c/bar".parse::<Uri>().unwrap();
-            assert_eq!(uri.host(), Some("a,b,c"));
-        }
+    #[test]
+    fn host_t6() {
+        let uri = "mysql://a,b,c/bar".parse::<Uri>().unwrap();
+        assert_eq!(uri.host(), Some("a,b,c"));
+    }
 
-        #[test]
-        fn host_t7() {
-            let uri = "scheme://!$&'()*+,;=hello!:23/path".parse::<Uri>().unwrap();
-            assert_eq!(uri.host(), Some("!$&'()*+,;=hello!"));
-        }
+    #[test]
+    fn host_t7() {
+        let uri = "scheme://!$&'()*+,;=hello!:23/path".parse::<Uri>().unwrap();
+        assert_eq!(uri.host(), Some("!$&'()*+,;=hello!"));
+    }
 
-        #[test]
-        fn host_t8() {
-            let uri = "myscheme://authority<\"hi\">/foo".parse::<Uri>().unwrap();
-            assert_eq!(uri.host(), Some("authority<\"hi\">"));
-        }
+    #[test]
+    fn host_t8() {
+        let uri = "myscheme://authority<\"hi\">/foo".parse::<Uri>().unwrap();
+        assert_eq!(uri.host(), Some("authority<\"hi\">"));
+    }
 
-        #[test]
-        fn host_t9() {
-            let uri = "http://hello.世界.com/foo".parse::<Uri>().unwrap();
-            assert_eq!(uri.host(), Some("hello.世界.com"));
-        }
+    #[test]
+    fn host_t9() {
+        let uri = "http://hello.世界.com/foo".parse::<Uri>().unwrap();
+        assert_eq!(uri.host(), Some("hello.世界.com"));
+    }
 
-    //     #[test]
-    //     fn host_header_t1() {
-    //         let uri = "http://www.example.org:8080".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.host_header(), "www.example.org");
-    //     }
+    #[test]
+    fn host_header_t1() {
+        let uri = "http://www.example.org:8080".parse::<Uri>().unwrap();
+        assert_eq!(uri.host_header(), "www.example.org");
+    }
 
-    //     #[test]
-    //     fn host_header_t2() {
-    //         let uri = "http://www.example.org:443".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.host_header(), "www.example.org:443");
-    //     }
+    #[test]
+    fn host_header_t2() {
+        let uri = "http://www.example.org:443".parse::<Uri>().unwrap();
+        assert_eq!(uri.host_header(), "www.example.org:443");
+    }
 
-    //     #[test]
-    //     fn port_t1() {
-    //         let uri = "http://192.168.0.1:8080/".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.port(), Some(8080));
-    //     }
+    #[test]
+    fn port_t1() {
+        let uri = "http://192.168.0.1:8080/".parse::<Uri>().unwrap();
+        assert_eq!(uri.port(), Some(8080));
+    }
 
-    //     #[test]
-    //     fn port_t2() {
-    //         let uri = "http://[fe80::1]:8080/".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.port(), Some(8080));
-    //     }
+    #[test]
+    fn port_t2() {
+        let uri = "http://[fe80::1]:8080/".parse::<Uri>().unwrap();
+        assert_eq!(uri.port(), Some(8080));
+    }
 
-    //     #[test]
-    //     fn port_t3() {
-    //         let uri = "scheme://!$&'()*+,;=hello!:23/path".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.port(), Some(23));
-    //     }
+    #[test]
+    fn port_t3() {
+        let uri = "scheme://!$&'()*+,;=hello!:23/path".parse::<Uri>().unwrap();
+        assert_eq!(uri.port(), Some(23));
+    }
 
-    //     #[test]
-    //     fn default_port_t1() {
-    //         let uri = "http://www.example.org:443".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.default_port(), Some(443));
-    //     }
+    #[test]
+    fn default_port_t1() {
+        let uri = "http://www.example.org:443".parse::<Uri>().unwrap();
+        assert_eq!(uri.default_port(), Some(443));
+    }
 
-    //     #[test]
-    //     fn default_port_t2() {
-    //         let uri = "https://www.example.org".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.default_port(), Some(443));
-    //     }
+    #[test]
+    fn default_port_t2() {
+        let uri = "https://www.example.org".parse::<Uri>().unwrap();
+        assert_eq!(uri.default_port(), Some(443));
+    }
 
-    //     #[test]
-    //     fn default_port_t3() {
-    //         let uri = "sptth://www.example.org".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.default_port(), None);
-    //     }
+    #[test]
+    fn default_port_t3() {
+        let uri = "sptth://www.example.org".parse::<Uri>().unwrap();
+        assert_eq!(uri.default_port(), None);
+    }
 
-    //     #[test]
-    //     fn path_t1() {
-    //         let uri = "http://www.example.org/".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.path(), Some("/"));
-    //     }
+    #[test]
+    fn path_t1() {
+        let uri = "http://www.example.org/".parse::<Uri>().unwrap();
+        assert_eq!(uri.path(), Some("/"));
+    }
 
-    //     #[test]
-    //     fn path_t2() {
-    //         let uri = "http://www.example.org/file%20one%26two"
-    //             .parse::<Uri>()
-    //             .unwrap();
-    //         assert_eq!(uri.path(), Some("/file%20one%26two"));
-    //         assert_eq!(uri.decode_path(), Some("/file one&two".to_owned()));
-    //     }
+    #[test]
+    fn path_t2() {
+        let uri = "http://www.example.org/file%20one%26two"
+            .parse::<Uri>()
+            .unwrap();
+        assert_eq!(uri.path(), Some("/file%20one%26two"));
+        assert_eq!(uri.decode_path(), Some("/file one&two".to_owned()));
+    }
 
-    //     #[test]
-    //     fn path_t3() {
-    //         let uri = "ftp://john%20doe@www.example.org/".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.user_info(), Some("john%20doe"));
-    //     }
+    #[test]
+    fn path_t3() {
+        let uri = "ftp://john%20doe@www.example.org/".parse::<Uri>().unwrap();
+        assert_eq!(uri.user_info(), Some("john%20doe"));
+    }
 
-    //     #[test]
-    //     fn path_t4() {
-    //         let uri = "http://www.example.org/?".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.path(), Some("/"));
-    //     }
+    #[test]
+    fn path_t4() {
+        let uri = "http://www.example.org/?".parse::<Uri>().unwrap();
+        assert_eq!(uri.path(), Some("/"));
+    }
 
-    //     #[test]
-    //     fn path_t5() {
-    //         let uri = "http://www.example.org/a%20b?q=c+d".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.path(), Some("/a%20b"));
-    //     }
+    #[test]
+    fn path_t5() {
+        let uri = "http://www.example.org/a%20b?q=c+d".parse::<Uri>().unwrap();
+        assert_eq!(uri.path(), Some("/a%20b"));
+    }
 
-    //     #[test]
-    //     fn path_t6() {
-    //         let uri = "http://rest.rsc.io/foo%2fbar/baz%2Fquux?alt=media"
-    //             .parse::<Uri>()
-    //             .unwrap();
-    //         assert_eq!(uri.path(), Some("/foo%2fbar/baz%2Fquux"));
-    //         assert_eq!(uri.decode_path(), Some("/foo/bar/baz/quux".to_owned()));
-    //     }
+    #[test]
+    fn path_t6() {
+        let uri = "http://rest.rsc.io/foo%2fbar/baz%2Fquux?alt=media"
+            .parse::<Uri>()
+            .unwrap();
+        assert_eq!(uri.path(), Some("/foo%2fbar/baz%2Fquux"));
+        assert_eq!(uri.decode_path(), Some("/foo/bar/baz/quux".to_owned()));
+    }
 
-    //     #[test]
-    //     fn path_t7() {
-    //         let uri = "mysql://a,b,c/bar".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.path(), Some("/bar"));
-    //     }
+    #[test]
+    fn path_t7() {
+        let uri = "mysql://a,b,c/bar".parse::<Uri>().unwrap();
+        assert_eq!(uri.path(), Some("/bar"));
+    }
 
-    //     #[test]
-    //     fn path_t8() {
-    //         let uri = "scheme://!$&'()*+,;=hello!:23/path".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.path(), Some("/path"));
-    //     }
+    #[test]
+    fn path_t8() {
+        let uri = "scheme://!$&'()*+,;=hello!:23/path".parse::<Uri>().unwrap();
+        assert_eq!(uri.path(), Some("/path"));
+    }
 
-    //     #[test]
-    //     fn path_t9() {
-    //         let uri = "http://host/!$&'()*+,;=:@[hello]".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.path(), Some("/!$&'()*+,;=:@[hello]"));
-    //         // Rawu.path = Some("/!$&'()*+,;=:@[hello]");
-    //     }
+    #[test]
+    fn path_t9() {
+        let uri = "http://host/!$&'()*+,;=:@[hello]".parse::<Uri>().unwrap();
+        assert_eq!(uri.path(), Some("/!$&'()*+,;=:@[hello]"));
+        // Rawu.path = Some("/!$&'()*+,;=:@[hello]");
+    }
 
-    //     #[test]
-    //     fn path_t10() {
-    //         let uri = "http://example.com/oid/[order_id]".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.path(), Some("/oid/[order_id]"));
-    //         // Rawu.path = Some("/oid/[order_id]");
-    //     }
+    #[test]
+    fn path_t10() {
+        let uri = "http://example.com/oid/[order_id]".parse::<Uri>().unwrap();
+        assert_eq!(uri.path(), Some("/oid/[order_id]"));
+        // Rawu.path = Some("/oid/[order_id]");
+    }
 
-    //     #[test]
-    //     fn path_t11() {
-    //         let uri = "http://example.com//foo".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.path(), Some("//foo"));
-    //     }
+    #[test]
+    fn path_t11() {
+        let uri = "http://example.com//foo".parse::<Uri>().unwrap();
+        assert_eq!(uri.path(), Some("//foo"));
+    }
 
-    //     #[test]
-    //     fn query_t1() {
-    //         let uri = "http://www.example.org/?".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.query(), Some(""));
-    //     }
+    #[test]
+    fn query_t1() {
+        let uri = "http://www.example.org/?".parse::<Uri>().unwrap();
+        assert_eq!(uri.query(), Some(""));
+    }
 
-    //     #[test]
-    //     fn query_t2() {
-    //         let uri = "http://www.example.org/?foo=bar?".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.query(), Some("foo=bar?"));
-    //     }
+    #[test]
+    fn query_t2() {
+        let uri = "http://www.example.org/?foo=bar?".parse::<Uri>().unwrap();
+        assert_eq!(uri.query(), Some("foo=bar?"));
+    }
 
-    //     #[test]
-    //     fn query_t3() {
-    //         let uri = "http://www.example.org/?q=rust+language"
-    //             .parse::<Uri>()
-    //             .unwrap();
-    //         assert_eq!(uri.query(), Some("q=rust+language"));
-    //     }
+    #[test]
+    fn query_t3() {
+        let uri = "http://www.example.org/?q=rust+language"
+            .parse::<Uri>()
+            .unwrap();
+        assert_eq!(uri.query(), Some("q=rust+language"));
+    }
 
-    //     #[test]
-    //     fn query_t4() {
-    //         let uri = "http://www.example.org/?q=go%20language"
-    //             .parse::<Uri>()
-    //             .unwrap();
-    //         assert_eq!(uri.query(), Some("q=go%20language"));
-    //     }
+    #[test]
+    fn query_t4() {
+        let uri = "http://www.example.org/?q=go%20language"
+            .parse::<Uri>()
+            .unwrap();
+        assert_eq!(uri.query(), Some("q=go%20language"));
+    }
 
-    //     #[test]
-    //     fn query_t5() {
-    //         let uri = "http://www.example.org/a%20b?q=c+d".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.query(), Some("q=c+d"));
-    //         assert_eq!(uri.decode_path(), Some("/a b".to_owned()));
-    //     }
+    #[test]
+    fn query_t5() {
+        let uri = "http://www.example.org/a%20b?q=c+d".parse::<Uri>().unwrap();
+        assert_eq!(uri.query(), Some("q=c+d"));
+        assert_eq!(uri.decode_path(), Some("/a b".to_owned()));
+    }
 
-    //     #[test]
-    //     fn query_t6() {
-    //         let uri = "http://www.example.org/?q=rust+language"
-    //             .parse::<Uri>()
-    //             .unwrap();
-    //         assert_eq!(uri.query(), Some("q=rust+language"));
-    //     }
+    #[test]
+    fn query_t6() {
+        let uri = "http://www.example.org/?q=rust+language"
+            .parse::<Uri>()
+            .unwrap();
+        assert_eq!(uri.query(), Some("q=rust+language"));
+    }
 
-    //     #[test]
-    //     fn query_t7() {
-    //         let uri = "http://rest.rsc.io/foo%2fbar/baz%2Fquux?alt=media"
-    //             .parse::<Uri>()
-    //             .unwrap();
-    //         assert_eq!(uri.query(), Some("alt=media"));
-    //     }
+    #[test]
+    fn query_t7() {
+        let uri = "http://rest.rsc.io/foo%2fbar/baz%2Fquux?alt=media"
+            .parse::<Uri>()
+            .unwrap();
+        assert_eq!(uri.query(), Some("alt=media"));
+    }
 
-    //     #[test]
-    //     fn fragment_t1() {
-    //         let uri = "http://www.example.org/foo.html#bar"
-    //             .parse::<Uri>()
-    //             .unwrap();
-    //         assert_eq!(uri.fragment(), Some("bar"));
-    //     }
+    #[test]
+    fn fragment_t1() {
+        let uri = "http://www.example.org/foo.html#bar"
+            .parse::<Uri>()
+            .unwrap();
+        assert_eq!(uri.fragment(), Some("bar"));
+    }
 
-    //     #[test]
-    //     fn fragment_t2() {
-    //         let uri = "http://www.example.org/foo.html".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.fragment(), None);
-    //     }
+    #[test]
+    fn fragment_t2() {
+        let uri = "http://www.example.org/foo.html".parse::<Uri>().unwrap();
+        assert_eq!(uri.fragment(), None);
+    }
 
-    //     #[test]
-    //     fn request_uri_t1() {
-    //         let uri = "http://rest.rsc.io/foo%2fbar/baz%2Fquux?alt=media"
-    //             .parse::<Uri>()
-    //             .unwrap();
-    //         assert_eq!(uri.request_uri(), "/foo%2fbar/baz%2Fquux?alt=media");
-    //     }
+    #[test]
+    fn request_uri_t1() {
+        let uri = "http://rest.rsc.io/foo%2fbar/baz%2Fquux?alt=media"
+            .parse::<Uri>()
+            .unwrap();
+        assert_eq!(uri.request_uri(), "/foo%2fbar/baz%2Fquux?alt=media");
+    }
 
-    //     #[test]
-    //     fn proxy_request_uri() {
-    //         let uri = "http://rest.rsc.io/foo%2fbar/baz%2Fquux?alt=media"
-    //             .parse::<Uri>()
-    //             .unwrap();
-    //         assert_eq!(
-    //             uri.proxy_request_uri(),
-    //             "http://rest.rsc.io:80/foo%2fbar/baz%2Fquux?alt=media"
-    //         );
-    //     }
+    #[test]
+    fn proxy_request_uri() {
+        let uri = "http://rest.rsc.io/foo%2fbar/baz%2Fquux?alt=media"
+            .parse::<Uri>()
+            .unwrap();
+        assert_eq!(
+            uri.proxy_request_uri(),
+            Some("http://rest.rsc.io:80/foo%2fbar/baz%2Fquux?alt=media".to_string())
+        );
+    }
 
-    //     #[test]
-    //     fn origin_t1() {
-    //         let uri = "http://www.example.org/foo.html".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.origin(), "http://www.example.org:80");
-    //     }
+    #[test]
+    fn origin_t1() {
+        let uri = "http://www.example.org/foo.html".parse::<Uri>().unwrap();
+        assert_eq!(uri.origin(), Some("http://www.example.org:80".to_string()));
+    }
 
-    //     #[test]
-    //     fn host_port_t1() {
-    //         let uri = "http://www.example.org/foo.html".parse::<Uri>().unwrap();
-    //         assert_eq!(uri.host_port(), "www.example.org:80");
-    //     }
+    #[test]
+    fn host_port_t1() {
+        let uri = "http://www.example.org/foo.html".parse::<Uri>().unwrap();
+        assert_eq!(uri.host_port(), Some("www.example.org:80".to_string()));
+    }
 
-    //     // #[test]
-    //     // fn addr_port_t1() {
-    //     //     let uri = "http://www.example.org/foo.html".parse::<Uri>().unwrap();
-    //     //     assert_eq!(uri.addr_port(), vec![0u8, 80u8]);
-    //     // }
+    // #[test]
+    // fn addr_port_t1() {
+    //     let uri = "http://www.example.org/foo.html".parse::<Uri>().unwrap();
+    //     assert_eq!(uri.addr_port(), vec![0u8, 80u8]);
+    // }
 
-    //     // #[test]
-    //     // fn path_without_leading() {
-    //     //         //     let uri = "http:%2f%2fwww.example.org/?q=rust+language".parse::<Uri>().unwrap();
-    //     //     assert_eq!(uri.scheme(), "http");
-    //     //     // Opaque:   "%2f%2fwww.example.org/",
-    //     //     u.query = Some("q=rust+language");
-    //     //         // }
+    // #[test]
+    // fn path_without_leading() {
+    //         //     let uri = "http:%2f%2fwww.example.org/?q=rust+language".parse::<Uri>().unwrap();
+    //     assert_eq!(uri.scheme(), "http");
+    //     // Opaque:   "%2f%2fwww.example.org/",
+    //     u.query = Some("q=rust+language");
+    //         // }
 
-    //     // #[test]
-    //     // fn host_subcomponent3() {
-    //     //         //     let uri = "http://[fe80::1%25en0]/".parse::<Uri>().unwrap();
-    //     //     assert_eq!(uri.scheme(), "http");
-    //     //     u.host = "[fe80::1%en0]";
-    //     //     assert_eq!(uri.path(), Some("/"));
-    //     //         // }
+    // #[test]
+    // fn host_subcomponent3() {
+    //         //     let uri = "http://[fe80::1%25en0]/".parse::<Uri>().unwrap();
+    //     assert_eq!(uri.scheme(), "http");
+    //     u.host = "[fe80::1%en0]";
+    //     assert_eq!(uri.path(), Some("/"));
+    //         // }
 
-    //     // #[test]
-    //     // fn host_and_port_subcomponents3() {
-    //     //     let uri = "http://[fe80::1%25en0]:8080/".parse::<Uri>().unwrap();
-    //     //     assert_eq!(uri.scheme(), "http");
-    //     //     assert_eq!(uri.host(), Some("[fe80::1%en0]"));
-    //     //     assert_eq!(uri.port(), Some(8080));
-    //     //     assert_eq!(uri.path(), Some("/"));
-    //     // }
+    // #[test]
+    // fn host_and_port_subcomponents3() {
+    //     let uri = "http://[fe80::1%25en0]:8080/".parse::<Uri>().unwrap();
+    //     assert_eq!(uri.scheme(), "http");
+    //     assert_eq!(uri.host(), Some("[fe80::1%en0]"));
+    //     assert_eq!(uri.port(), Some(8080));
+    //     assert_eq!(uri.path(), Some("/"));
+    // }
 
-    //     // #[test]
-    //     // fn host_subcomponent4() {
-    //     //         //     let uri = "http:[fe80::1%25%65%6e%301-._~]/".parse::<Uri>().unwrap();
-    //     //     assert_eq!(uri.scheme(), "http");
-    //     //     u.host = "[fe80::1%en01-._~]";
-    //     //     assert_eq!(uri.path(), Some("/"));
-    //     //         // }
+    // #[test]
+    // fn host_subcomponent4() {
+    //         //     let uri = "http:[fe80::1%25%65%6e%301-._~]/".parse::<Uri>().unwrap();
+    //     assert_eq!(uri.scheme(), "http");
+    //     u.host = "[fe80::1%en01-._~]";
+    //     assert_eq!(uri.path(), Some("/"));
+    //         // }
 
-    //     // #[test]
-    //     // fn host_and_port_subcomponents4() {
-    //     //             let uri = "http:[fe80::1%25%65%6e%301-._~]:8080/".parse::<Uri>().unwrap();
-    //     //     assert_eq!(uri.scheme(), "http");
-    //     //     assert_eq!(uri.host(), Some("[fe80::1%25%65%6e%301-._~]"));
-    //     //     // assert_eq!(uri.host(), Some("[fe80::1%en01-._~]"));
-    //     //     assert_eq!(uri.port(), Some(8080));
-    //     //     assert_eq!(uri.path(), Some("/"));
-    //     //         }
+    // #[test]
+    // fn host_and_port_subcomponents4() {
+    //             let uri = "http:[fe80::1%25%65%6e%301-._~]:8080/".parse::<Uri>().unwrap();
+    //     assert_eq!(uri.scheme(), "http");
+    //     assert_eq!(uri.host(), Some("[fe80::1%25%65%6e%301-._~]"));
+    //     // assert_eq!(uri.host(), Some("[fe80::1%en01-._~]"));
+    //     assert_eq!(uri.port(), Some(8080));
+    //     assert_eq!(uri.path(), Some("/"));
+    //         }
 
-    //     // #[test]
-    //     // fn host_subcomponent4() {
-    //     //     let uri = "http://192.168.0.2:/foo".parse::<Uri>().unwrap();
-    //     //     assert_eq!(uri.scheme(), "http");
-    //     //     assert_eq!(uri.host(), Some("192.168.0.2:"));
-    //     //     assert_eq!(uri.path(), Some("/foo"));
-    //     // }
+    // #[test]
+    // fn host_subcomponent4() {
+    //     let uri = "http://192.168.0.2:/foo".parse::<Uri>().unwrap();
+    //     assert_eq!(uri.scheme(), "http");
+    //     assert_eq!(uri.host(), Some("192.168.0.2:"));
+    //     assert_eq!(uri.path(), Some("/foo"));
+    // }
 
-    //     //          //      	 Malformed IPv6 but still accepted.
-    //     //      let uri = "http://2b01:e34:ef40:7730:8e70:5aff:fefe:edac:8080/foo".parse::<Uri>().unwrap();
-    //     //      		assert_eq!(uri.scheme(), "http");
-    //     //      		u.host = "2b01:e34:ef40:7730:8e70:5aff:fefe:edac:8080";
-    //     //      		u.path = Some("/foo");
-    //     //          // }
+    //          //      	 Malformed IPv6 but still accepted.
+    //      let uri = "http://2b01:e34:ef40:7730:8e70:5aff:fefe:edac:8080/foo".parse::<Uri>().unwrap();
+    //      		assert_eq!(uri.scheme(), "http");
+    //      		u.host = "2b01:e34:ef40:7730:8e70:5aff:fefe:edac:8080";
+    //      		u.path = Some("/foo");
+    //          // }
 
-    //     //          //      	 Malformed IPv6 but still accepted.
-    //     //      let uri = "http://2b01:e34:ef40:7730:8e70:5aff:fefe:edac:/foo".parse::<Uri>().unwrap();
-    //     //      		assert_eq!(uri.scheme(), "http");
-    //     //      		u.host = "2b01:e34:ef40:7730:8e70:5aff:fefe:edac:";
-    //     //      		u.path = Some("/foo");
-    //     //          // }
+    //          //      	 Malformed IPv6 but still accepted.
+    //      let uri = "http://2b01:e34:ef40:7730:8e70:5aff:fefe:edac:/foo".parse::<Uri>().unwrap();
+    //      		assert_eq!(uri.scheme(), "http");
+    //      		u.host = "2b01:e34:ef40:7730:8e70:5aff:fefe:edac:";
+    //      		u.path = Some("/foo");
+    //          // }
 
-    //     // #[test]
-    //     // fn ipv6_2() {
-    //     //          //      let uri = "http:[2b01:e34:ef40:7730:8e70:5aff:fefe:edac]:8080/foo".parse::<Uri>().unwrap();
-    //     //      		assert_eq!(uri.scheme(), "http");
-    //     //      		assert_eq!(uri.host(), Some("[2b01:e34:ef40:7730:8e70:5aff:fefe:edac]:8080"));
-    //     //      		assert_eq!(uri.path(), Some("/foo"));
-    //     //          // }
+    // #[test]
+    // fn ipv6_2() {
+    //          //      let uri = "http:[2b01:e34:ef40:7730:8e70:5aff:fefe:edac]:8080/foo".parse::<Uri>().unwrap();
+    //      		assert_eq!(uri.scheme(), "http");
+    //      		assert_eq!(uri.host(), Some("[2b01:e34:ef40:7730:8e70:5aff:fefe:edac]:8080"));
+    //      		assert_eq!(uri.path(), Some("/foo"));
+    //          // }
 
-    //     //          //      let uri = "http:[2b01:e34:ef40:7730:8e70:5aff:fefe:edac]:/foo".parse::<Uri>().unwrap();
-    //     //      		assert_eq!(uri.scheme(), "http");
-    //     //      		u.host = "[2b01:e34:ef40:7730:8e70:5aff:fefe:edac]:";
-    //     //      		u.path = Some("/foo");
-    //     //          // }
+    //          //      let uri = "http:[2b01:e34:ef40:7730:8e70:5aff:fefe:edac]:/foo".parse::<Uri>().unwrap();
+    //      		assert_eq!(uri.scheme(), "http");
+    //      		u.host = "[2b01:e34:ef40:7730:8e70:5aff:fefe:edac]:";
+    //      		u.path = Some("/foo");
+    //          // }
 
-    //     //          //      let uri = "http://hello.%e4%b8%96%e7%95%8c.com/foo".parse::<Uri>().unwrap();
-    //     //      		assert_eq!(uri.scheme(), "http");
-    //     //      		u.host = "hello.世界.com";
-    //     //      		u.path = Some("/foo");
-    //     //          //      let uri = "http://hello.%E4%B8%96%E7%95%8C.com/foo".parse::<Uri>().unwrap();
-    //     //      }
+    //          //      let uri = "http://hello.%e4%b8%96%e7%95%8c.com/foo".parse::<Uri>().unwrap();
+    //      		assert_eq!(uri.scheme(), "http");
+    //      		u.host = "hello.世界.com";
+    //      		u.path = Some("/foo");
+    //          //      let uri = "http://hello.%E4%B8%96%E7%95%8C.com/foo".parse::<Uri>().unwrap();
+    //      }
 
-    //     //          //      let uri = "http://hello.%E4%B8%96%E7%95%8C.com/foo".parse::<Uri>().unwrap();
-    //     //      		assert_eq!(uri.scheme(), "http");
-    //     //      		u.host = "hello.世界.com";
-    //     //      		u.path = Some("/foo");
-    //     //          // }
+    //          //      let uri = "http://hello.%E4%B8%96%E7%95%8C.com/foo".parse::<Uri>().unwrap();
+    //      		assert_eq!(uri.scheme(), "http");
+    //      		u.host = "hello.世界.com";
+    //      		u.path = Some("/foo");
+    //          // }
 
-    //     // #[test]
-    //     // fn example5() {
-    //     //         //     let uri = "tcp:[2020::2020:20:2020:2020%25Windows%20Loves%20Spaces]:2020".parse::<Uri>().unwrap();
-    //     //     u.scheme = Some("tcp");
-    //     //     u.host = "[2020::2020:20:2020:2020%Windows Loves Spaces]:2020";
-    //     //         // }
+    // #[test]
+    // fn example5() {
+    //         //     let uri = "tcp:[2020::2020:20:2020:2020%25Windows%20Loves%20Spaces]:2020".parse::<Uri>().unwrap();
+    //     u.scheme = Some("tcp");
+    //     u.host = "[2020::2020:20:2020:2020%Windows Loves Spaces]:2020";
+    //         // }
 }

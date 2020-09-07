@@ -3,10 +3,9 @@ use std::ops::Add;
 use std::str::FromStr;
 
 use base64::encode;
-use percent_encoding::percent_decode_str;
 
 use crate::error::{Error, Result};
-use crate::utils::RangeUsize;
+use crate::utils::{decode, RangeUsize};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Authority {
@@ -23,11 +22,7 @@ impl Authority {
     }
 
     pub fn decode_username(&self) -> Option<String> {
-        self.username().and_then(|v| {
-            percent_decode_str(v)
-                .decode_utf8()
-                .map_or(None, |op| Some(op.to_string()))
-        })
+        self.username().and_then(|username| decode(username))
     }
 
     pub fn password(&self) -> Option<&str> {
@@ -35,11 +30,7 @@ impl Authority {
     }
 
     pub fn decode_password(&self) -> Option<String> {
-        self.password().and_then(|v| {
-            percent_decode_str(v)
-                .decode_utf8()
-                .map_or(None, |op| Some(op.to_string()))
-        })
+        self.password().and_then(|password| decode(password))
     }
 
     pub fn user_info(&self) -> Option<&str> {
