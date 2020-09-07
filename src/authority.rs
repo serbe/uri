@@ -17,6 +17,16 @@ pub struct Authority {
 }
 
 impl Authority {
+    pub fn new() -> Self {
+        Authority {
+            inner: String::new(),
+            username: None,
+            password: None,
+            host: RangeUsize::new(0, 0),
+            port: None,
+        }
+    }
+
     pub fn username(&self) -> Option<&str> {
         self.username.map(|username| &self.inner[username])
     }

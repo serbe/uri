@@ -20,7 +20,6 @@ pub struct Uri {
     pub(crate) path: Option<RangeUsize>,
     pub(crate) query: Option<RangeUsize>,
     pub(crate) fragment: Option<RangeUsize>,
-    // pub(crate) authority_noempty: Option<RangeUsize>,
     pub(crate) authority: Option<Authority>,
 }
 
