@@ -285,11 +285,24 @@ mod tests {
 
     #[test]
     fn get_ok_host() {
-        let mut range = RangeUsize::new(0, 11);
         let host = "hostname:123";
+        let mut range = RangeUsize::new(0, 11);
         let expected = RangeUsize::new(0, 8);
         let expected_range = RangeUsize::new(9, 11);
         assert_eq!(get_host(host, &mut range), Ok(expected));
+        assert_eq!(range, expected_range);
+    }
+
+    #[test]
+    fn get_host_ipv6() {
+        let host = "[hostname:123]";
+        let mut range = RangeUsize::new(0, 14);
+        assert_eq!(&host[range], host);
+        assert!(host[range].starts_with('[') && host[range].contains(']'));
+        let expected = RangeUsize::new(0, 14);
+        let expected_range = RangeUsize::new(14, 14);
+        assert_eq!(get_host(host, &mut range), Ok(expected));
+        assert_eq!(&host[expected], host);
         assert_eq!(range, expected_range);
     }
 }
