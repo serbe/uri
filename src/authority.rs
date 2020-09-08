@@ -268,8 +268,8 @@ mod tests {
     fn get_some_ui() {
         let mut range = RangeUsize::new(0, 26);
         let good_ui = "username:password@hostname";
-        let expected = RangeUsize::new(0, 15);
-        let expected_range = RangeUsize::new(17, 26);
+        let expected = RangeUsize::new(0, 17);
+        let expected_range = RangeUsize::new(18, 26);
         assert_eq!(get_user_info(good_ui, &mut range), Some(expected));
         assert_eq!(range, expected_range);
     }
@@ -287,8 +287,8 @@ mod tests {
     fn get_ok_host() {
         let mut range = RangeUsize::new(0, 11);
         let host = "hostname:123";
-        let expected = RangeUsize::new(0, 7);
-        let expected_range = RangeUsize::new(8, 11);
+        let expected = RangeUsize::new(0, 8);
+        let expected_range = RangeUsize::new(9, 11);
         assert_eq!(get_host(host, &mut range), Ok(expected));
         assert_eq!(range, expected_range);
     }

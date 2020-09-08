@@ -137,7 +137,13 @@ impl Index<&RangeUsize> for String {
 //     }
 // }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-// }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn range_eq() {
+        let expected = RangeUsize{start:2, end: 4};
+        assert_eq!(RangeUsize::new(2,4), expected);
+    }
+}
