@@ -1,5 +1,5 @@
 use std::cmp::{max, min};
-use std::convert::From;
+// use std::convert::From;
 use std::ops::{Add, Index, Range, RangeTo};
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -137,7 +137,7 @@ impl Index<&RangeUsize> for String {
 //     }
 // }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-}
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+// }

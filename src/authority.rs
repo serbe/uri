@@ -84,16 +84,18 @@ fn check_user_info(s: &str) -> Result<()> {
     if let Some(colon_pos) = s.find(':') {
         if colon_pos == 0 {
             Err(Error::EmptyUsername)
+        } else if colon_pos == s.len() {
+            Ok(())
         } else if contain_reserver_char(&s[..colon_pos]) {
             Err(Error::InvalidUsername(s[..colon_pos].to_string()))
         } else if contain_reserver_char(&s[colon_pos + 1..]) {
-            Err(Error::InvalidPassword(s[colon_pos..].to_string()))
+            Err(Error::InvalidPassword(s[colon_pos + 1..].to_string()))
         } else {
             Ok(())
         }
     } else {
         if s.is_empty() {
-            Err(Error::EmptyUsername)
+            Err(Error::EmptyUserInfo)
         } else if contain_reserver_char(&s) {
             Err(Error::InvalidUsername(s.to_string()))
         } else {
@@ -199,6 +201,7 @@ impl fmt::Display for Authority {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Error;
 
     #[test]
     fn authority_new() {
@@ -221,38 +224,51 @@ mod tests {
     }
 
     #[test]
-    fn authority_user() {
+    fn authority_inner() {
         let authority = "user:password@host:80".parse::<Authority>().unwrap();
-        assert_eq!(authority.username(), Some("user"));
+        assert_eq!(authority.inner, "user:password@host:80".to_string());
     }
 
     #[test]
-    fn authority_password() {
-        let authority = "user:password@host:80".parse::<Authority>().unwrap();
-        assert_eq!(authority.password(), Some("password"));
+    fn reserver_char() {
+        let bad_str = "myscheme://authority<\"hi\">/foo";
+        assert!(contain_reserver_char(bad_str));
+        let good_str = "myschemeauthority<\"hi\">foo";
+        assert!(!contain_reserver_char(good_str));
     }
 
     #[test]
-    fn authority_host() {
-        let authority = "user:password@host:80".parse::<Authority>().unwrap();
-        assert_eq!(authority.host(), "host");
+    fn ui() {
+        let ui_empty = "";
+        assert_eq!(check_user_info(ui_empty), Err(Error::EmptyUserInfo));
+        let ui_user_invalid = "user/ame";
+        assert_eq!(
+            check_user_info(ui_user_invalid),
+            Err(Error::InvalidUsername("user/ame".to_string()))
+        );
+        let ui_good = "username";
+        assert_eq!(check_user_info(ui_good), Ok(()));
+        let ui_pass_empty = "username:";
+        assert_eq!(check_user_info(ui_pass_empty), Ok(()));
+        let ui_user_empty = ":password";
+        assert_eq!(check_user_info(ui_user_empty), Err(Error::EmptyUsername));
+        let ui_user_invalid2 = "user/ame:password";
+        assert_eq!(
+            check_user_info(ui_user_invalid2),
+            Err(Error::InvalidUsername("user/ame".to_string()))
+        );
+        let ui_pass_invalid = "username:pass/ord";
+        assert_eq!(
+            check_user_info(ui_pass_invalid),
+            Err(Error::InvalidPassword("pass/ord".to_string()))
+        );
     }
 
     #[test]
-    fn authority_port() {
-        let authority = "user:password@host:80".parse::<Authority>().unwrap();
-        assert_eq!(authority.port(), Some(80));
-    }
-
-    #[test]
-    fn authority_userinfo() {
-        let authority = "user:password@host:80".parse::<Authority>().unwrap();
-        assert_eq!(authority.user_info(), Some("user:password"));
-    }
-
-    #[test]
-    fn authority_display() {
-        let authority = "user:password@host:80".parse::<Authority>().unwrap();
-        assert_eq!(&authority.to_string(), "user:********@host:80");
+    fn get_ui() {
+        let mut range = RangeUsize::new(0, 26);
+        let good_ui = "username:password@hostname";
+        
+        assert!(get_user_info(good_ui, &mut range).is_some());
     }
 }

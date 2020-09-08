@@ -1,4 +1,4 @@
-use uri;
+// use uri;
 
 #[test]
 fn it_adds_two() {
