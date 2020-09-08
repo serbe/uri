@@ -1,11 +1,11 @@
 use std::fmt;
-use std::ops::Add;
 use std::str::FromStr;
 
 use base64::encode;
 
 use crate::error::{Error, Result};
-use crate::utils::{decode, RangeUsize};
+use crate::range::RangeUsize;
+use crate::utils::decode;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Authority {
@@ -25,6 +25,10 @@ impl Authority {
             host: RangeUsize::new(0, 0),
             port: None,
         }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.inner.is_empty()
     }
 
     pub fn username(&self) -> Option<&str> {
@@ -194,7 +198,27 @@ impl fmt::Display for Authority {
 
 #[cfg(test)]
 mod tests {
-    use crate::authority::Authority;
+    use super::*;
+
+    #[test]
+    fn authority_new() {
+        let authority = Authority {
+            inner: String::new(),
+            username: None,
+            password: None,
+            host: RangeUsize::new(0, 0),
+            port: None,
+        };
+        assert_eq!(authority, Authority::new());
+        let authority = Authority {
+            inner: String::new(),
+            username: Some(RangeUsize::new(0, 0)),
+            password: None,
+            host: RangeUsize::new(0, 0),
+            port: None,
+        };
+        assert_ne!(authority, Authority::new());
+    }
 
     #[test]
     fn authority_user() {

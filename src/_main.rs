@@ -4,6 +4,7 @@ use crate::uri::Uri;
 // mod addr;
 mod authority;
 mod error;
+mod range;
 mod uri;
 mod utils;
 

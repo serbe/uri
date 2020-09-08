@@ -7,16 +7,18 @@
  *
  */
 
-// pub use crate::uri::Uri;
+pub use crate::uri::Uri;
 pub use addr::Addr;
-// pub use authority::Authority;
+pub use authority::Authority;
 pub use error::{Error, Result};
+pub use range::RangeUsize;
 
 mod addr;
-// mod authority;
+mod authority;
 mod error;
+mod range;
+mod uri;
 mod utils;
-// mod uri;
 
 // scheme      = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
 // userinfo    = *( unreserved / pct-encoded / sub-delims / ":" )

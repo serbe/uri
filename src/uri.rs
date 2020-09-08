@@ -1,26 +1,31 @@
 use std::convert::TryFrom;
-use std::fmt;
-use std::net::{SocketAddr, ToSocketAddrs};
-use std::ops::Range;
+// use std::fmt;
+// use std::net::{SocketAddr, ToSocketAddrs};
+// use std::ops::Range;
 use std::str;
 use std::str::FromStr;
 use std::string::ToString;
 
-use percent_encoding::percent_decode_str;
+// use percent_encoding::percent_decode_str;
 
 // use crate::addr::Addr;
 use crate::authority::Authority;
 use crate::error::{Error, Result};
-use crate::utils::{decode, RangeUsize};
+use crate::range::RangeUsize;
+use crate::utils::decode;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Uri {
     pub(crate) inner: String,
     pub(crate) scheme: RangeUsize,
+    pub(crate) username: Option<RangeUsize>,
+    pub(crate) password: Option<RangeUsize>,
+    pub(crate) host: Option<RangeUsize>,
+    pub(crate) port: Option<u16>,
     pub(crate) path: Option<RangeUsize>,
     pub(crate) query: Option<RangeUsize>,
     pub(crate) fragment: Option<RangeUsize>,
-    pub(crate) authority: Option<Authority>,
+    pub(crate) authority: Authority,
 }
 
 impl TryFrom<String> for Uri {
@@ -137,38 +142,28 @@ impl Uri {
         &self.inner[self.scheme]
     }
 
-    fn scheme_shift(&self) -> usize {
-        self.scheme.len() + 3
-    }
-
     pub fn username(&self) -> Option<&str> {
-        self.authority
-            .clone()
-            .and_then(|a| a.username)
-            .and_then(|u| Some(&self.inner[u.shift(self.scheme_shift())]))
+        self.username.map(|username| &self.inner[username])
     }
 
     pub fn password(&self) -> Option<&str> {
-        self.authority
-            .clone()
-            .and_then(|a| a.password)
-            .and_then(|u| Some(&self.inner[u.shift(self.scheme_shift())]))
+        self.password.map(|password| &self.inner[password])
     }
 
     pub fn authority(&self) -> Option<Authority> {
-        self.authority.clone()
+        if self.authority.is_empty() {
+            None
+        } else {
+            Some(self.authority.clone())
+        }
     }
 
     pub fn user_info(&self) -> Option<&str> {
-        self.authority
-            .clone()
-            .and_then(|a| match (a.username, a.password) {
-                (Some(_), Some(password)) => {
-                    Some(&self.inner[self.scheme_shift()..password.end + self.scheme_shift()])
-                }
-                (Some(username), None) => Some(&self.inner[username.shift(self.scheme_shift())]),
-                _ => None,
-            })
+        match (self.username, self.password) {
+            (Some(username), Some(password)) => Some(&self.inner[username + password]),
+            (Some(username), None) => Some(&self.inner[username]),
+            _ => None,
+        }
     }
 
     pub fn decode_username(&self) -> Option<String> {
@@ -180,9 +175,7 @@ impl Uri {
     }
 
     pub fn host(&self) -> Option<&str> {
-        self.authority
-            .clone()
-            .map(|a| &self.inner[a.host.shift(self.scheme.len() + 3)])
+        self.host.map(|host| &self.inner[host])
     }
 
     pub fn host_header(&self) -> String {
@@ -326,7 +319,7 @@ impl Uri {
     // }
 
     pub fn has_authority(&self) -> bool {
-        self.authority.is_some()
+        !self.authority.is_empty()
     }
 
     // pub fn addr(&self) -> Addr {
@@ -401,12 +394,26 @@ impl FromStr for Uri {
         let query = get_query(s, &mut chunk);
 
         let authority = get_authority(s, &mut chunk)?;
+        let shift = scheme.len() + 3;
+
+        let username = authority.username.map(|username| username.shift(shift));
+        let password = authority.password.map(|password| password.shift(shift));
+        let host = if authority.is_empty() {
+            None
+        } else {
+            Some(authority.host.shift(shift))
+        };
+        let port = authority.port.map(|port| port);
 
         let path = get_path(s, &mut chunk);
 
         Ok(Uri {
             inner,
             scheme,
+            username,
+            password,
+            host,
+            port,
             path,
             query,
             fragment,
@@ -466,15 +473,15 @@ fn get_query(s: &str, chunk: &mut RangeUsize) -> Option<RangeUsize> {
         })
 }
 
-fn get_authority(s: &str, chunk: &mut RangeUsize) -> Result<Option<Authority>> {
+fn get_authority(s: &str, chunk: &mut RangeUsize) -> Result<Authority> {
     if !s[&chunk].starts_with("//") {
-        return Ok(None);
+        return Ok(Authority::new());
     }
     let mut range = RangeUsize::new(chunk.start + 2, chunk.end);
     s[range].find('/').map(|pos| range.end(range.start + pos));
     let authority = s[range].parse::<Authority>()?;
     chunk.start(range.end);
-    Ok(Some(authority))
+    Ok(authority)
 }
 
 fn get_path(s: &str, chunk: &mut RangeUsize) -> Option<RangeUsize> {
