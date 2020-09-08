@@ -265,10 +265,31 @@ mod tests {
     }
 
     #[test]
-    fn get_ui() {
+    fn get_some_ui() {
         let mut range = RangeUsize::new(0, 26);
         let good_ui = "username:password@hostname";
-        
-        assert!(get_user_info(good_ui, &mut range).is_some());
+        let expected = RangeUsize::new(0, 15);
+        let expected_range = RangeUsize::new(17, 26);
+        assert_eq!(get_user_info(good_ui, &mut range), Some(expected));
+        assert_eq!(range, expected_range);
+    }
+
+    #[test]
+    fn get_none_ui() {
+        let mut range = RangeUsize::new(0, 28);
+        let expected_range = RangeUsize::new(0, 28);
+        let good_ui = "username:password%40hostname";
+        assert_eq!(get_user_info(good_ui, &mut range), None);
+        assert_eq!(range, expected_range);
+    }
+
+    #[test]
+    fn get_ok_host() {
+        let mut range = RangeUsize::new(0, 11);
+        let host = "hostname:123";
+        let expected = RangeUsize::new(0, 7);
+        let expected_range = RangeUsize::new(8, 11);
+        assert_eq!(get_host(host, &mut range), Ok(expected));
+        assert_eq!(range, expected_range);
     }
 }
