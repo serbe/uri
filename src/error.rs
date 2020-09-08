@@ -22,6 +22,8 @@ pub enum Error {
     ParsePort(String),
     #[error("Empty scheme")]
     EmptyScheme,
+    #[error("Empty userinfo before @")]
+    EmptyUserInfo,
     #[error("Empty host in authority")]
     EmptyHost,
     #[error("Empty authority")]
@@ -36,4 +38,38 @@ pub enum Error {
     InvalidUsername(String),
     #[error("Password contains reserver chars (use percent-encoded) {0}")]
     InvalidPassword(String),
+}
+
+impl PartialEq for Error {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Error::IO(self_err), Error::IO(other_err)) => {
+                self_err.to_string() == other_err.to_string()
+            }
+            (Error::Utf8Error(self_err), Error::Utf8Error(other_err)) => self_err == other_err,
+            (Error::StdParseAddr(self_err), Error::StdParseAddr(other_err)) => {
+                self_err == other_err
+            }
+            (Error::ParseIPv6, Error::ParseIPv6) => true,
+            (Error::ParseAddr, Error::ParseAddr) => true,
+            (Error::ParseHost, Error::ParseHost) => true,
+            (Error::ParsePort(self_err), Error::ParsePort(other_err)) => self_err == other_err,
+            (Error::EmptyScheme, Error::EmptyScheme) => true,
+            (Error::EmptyUserInfo, Error::EmptyUserInfo) => true,
+            (Error::EmptyHost, Error::EmptyHost) => true,
+            (Error::EmptyAuthority, Error::EmptyAuthority) => true,
+            (Error::EmptyUsername, Error::EmptyUsername) => true,
+            (Error::SocketAddr, Error::SocketAddr) => true,
+            (Error::InvalidScheme(self_err), Error::InvalidScheme(other_err)) => {
+                self_err == other_err
+            }
+            (Error::InvalidUsername(self_err), Error::InvalidUsername(other_err)) => {
+                self_err == other_err
+            }
+            (Error::InvalidPassword(self_err), Error::InvalidPassword(other_err)) => {
+                self_err == other_err
+            }
+            _ => false,
+        }
+    }
 }
