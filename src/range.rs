@@ -1,11 +1,10 @@
 use std::cmp::{max, min};
-// use std::convert::From;
 use std::ops::{Add, Index, Range, RangeTo};
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct RangeUsize {
-    pub(crate) start: usize,
-    pub(crate) end: usize,
+    pub start: usize,
+    pub end: usize,
 }
 
 impl RangeUsize {
@@ -56,23 +55,6 @@ impl Add for RangeUsize {
     }
 }
 
-// impl From<&RangeUsize> for Range<usize> {
-//     fn from(range_usize: &RangeUsize) -> Self {
-//         Range {
-//             start: range_usize.start,
-//             end: range_usize.end,
-//         }
-//     }
-// }
-
-// impl From<RangeUsize> for RangeTo<usize> {
-//     fn from(range_usize: RangeUsize) -> Self {
-//         RangeTo {
-//             end: range_usize.end,
-//         }
-//     }
-// }
-
 impl Index<RangeUsize> for str {
     type Output = str;
 
@@ -113,37 +95,31 @@ impl Index<&RangeUsize> for String {
     }
 }
 
-// impl Index<RangeTo<RangeUsize>> for String {
-//     type Output = str;
-
-//     fn index(&self, index: RangeTo<RangeUsize>) -> &str {
-//         &self[index.start..index.end]
-//     }
-// }
-
-// pub(crate) fn set_start(start: usize, new_start: Option<usize>, shift: usize) -> usize {
-//     if let Some(new_start) = new_start {
-//         new_start + shift
-//     } else {
-//         start
-//     }
-// }
-
-// pub(crate) fn set_end(end: usize, new_end: Option<usize>, shift: usize) -> usize {
-//     if let Some(new_end) = new_end {
-//         new_end - shift
-//     } else {
-//         end
-//     }
-// }
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    const RANGE: RangeUsize  = RangeUsize{start:2,end:4};
+    const OTHER_RANGE: RangeUsize  = RangeUsize{start:4,end:2};
+
     #[test]
-    fn range_eq() {
-        let expected = RangeUsize{start:2, end: 4};
-        assert_eq!(RangeUsize::new(2,4), expected);
+    fn compare_with_rangeusize() {
+        let expected = RangeUsize::new(2,4);
+        assert_eq!(RANGE, expected);
+        assert_ne!(OTHER_RANGE, expected);
+    }
+
+    #[test]
+    fn compare_with_range() {
+        let expected = Range{start:2usize, end:4usize};
+        assert_eq!(RANGE.range(), expected);
+        assert_ne!(OTHER_RANGE.range(), expected);
+    }
+
+    #[test]
+    fn compare_with_rangeto() {
+        let expected = RangeTo{end:4usize};
+        assert_eq!(RANGE.range_to(), expected);
+        assert_ne!(OTHER_RANGE.range_to(), expected);
     }
 }
