@@ -7,6 +7,7 @@ use crate::error::{Error, Result};
 use crate::range::RangeUsize;
 use crate::utils::decode;
 
+/// authority = [ userinfo "@" ] host [ ":" port ]
 #[derive(Clone, Debug, PartialEq)]
 pub struct Authority {
     inner: String,
@@ -105,6 +106,7 @@ fn check_user_info(s: &str) -> Result<()> {
     Ok(())
 }
 
+/// userinfo = *( unreserved / pct-encoded / sub-delims / ":" )
 fn get_user_info(s: &str, chunk: &mut RangeUsize) -> Option<RangeUsize> {
     s.find('@').map(|pos| {
         chunk.start(pos + 1);
@@ -126,6 +128,36 @@ fn get_password(s: &str) -> Option<RangeUsize> {
     }
 }
 
+/// host = IP-literal / IPv4address / reg-name
+/// IP-literal = "[" ( IPv6address / IPvFuture  ) "]"
+/// IPvFuture  = "v" 1*HEXDIG "." 1*( unreserved / sub-delims / ":" )
+///
+///  IPv6address =                            6( h16 ":" ) ls32
+///              /                       "::" 5( h16 ":" ) ls32
+///              / [               h16 ] "::" 4( h16 ":" ) ls32
+///              / [ *1( h16 ":" ) h16 ] "::" 3( h16 ":" ) ls32
+///              / [ *2( h16 ":" ) h16 ] "::" 2( h16 ":" ) ls32
+///              / [ *3( h16 ":" ) h16 ] "::"    h16 ":"   ls32
+///              / [ *4( h16 ":" ) h16 ] "::"              ls32
+///              / [ *5( h16 ":" ) h16 ] "::"              h16
+///              / [ *6( h16 ":" ) h16 ] "::"
+///
+///  ls32        = ( h16 ":" h16 ) / IPv4address
+///              ; least-significant 32 bits of address
+///
+///  h16         = 1*4HEXDIG
+///              ; 16 bits of address represented in hexadecimal
+///
+///  IPv4address = dec-octet "." dec-octet "." dec-octet "." dec-octet
+///
+///  dec-octet   = DIGIT                 ; 0-9
+///              / %x31-39 DIGIT         ; 10-99
+///              / "1" 2DIGIT            ; 100-199
+///              / "2" %x30-34 DIGIT     ; 200-249
+///              / "25" %x30-35          ; 250-255
+///
+///  reg-name    = *( unreserved / pct-encoded / sub-delims )
+///
 fn get_host(s: &str, chunk: &mut RangeUsize) -> Result<RangeUsize> {
     if s[&chunk].is_empty() {
         Err(Error::EmptyHost)

@@ -6,8 +6,6 @@ use std::str;
 use std::str::FromStr;
 use std::string::ToString;
 
-// use percent_encoding::percent_decode_str;
-
 // use crate::addr::Addr;
 use crate::authority::Authority;
 use crate::error::{Error, Result};
@@ -422,6 +420,8 @@ impl FromStr for Uri {
     }
 }
 
+
+/// scheme = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
 fn check_scheme(scheme: &str) -> Result<()> {
     if scheme.is_empty() {
         return Err(Error::EmptyScheme);
@@ -430,7 +430,7 @@ fn check_scheme(scheme: &str) -> Result<()> {
         if pos == 0 {
             ch.is_alphabetic()
         } else {
-            ch.is_alphanumeric() || ch == '+' || ch == '.' || ch == '-'
+            ch.is_alphanumeric() || ch == '+' || ch == '-' || ch == '.'
         }
     }) {
         Ok(())
@@ -473,6 +473,7 @@ fn get_query(s: &str, chunk: &mut RangeUsize) -> Option<RangeUsize> {
         })
 }
 
+/// authority = [ userinfo "@" ] host [ ":" port ]
 fn get_authority(s: &str, chunk: &mut RangeUsize) -> Result<Authority> {
     if !s[&chunk].starts_with("//") {
         return Ok(Authority::new());
