@@ -99,27 +99,43 @@ impl Index<&RangeUsize> for String {
 mod tests {
     use super::*;
 
-    const RANGE: RangeUsize  = RangeUsize{start:2,end:4};
-    const OTHER_RANGE: RangeUsize  = RangeUsize{start:4,end:2};
+    const RANGE: RangeUsize = RangeUsize { start: 2, end: 4 };
 
     #[test]
-    fn compare_with_rangeusize() {
-        let expected = RangeUsize::new(2,4);
-        assert_eq!(RANGE, expected);
-        assert_ne!(OTHER_RANGE, expected);
+    fn rangeusize_len() {
+        let s = "asdfghjkl;";
+        assert_eq!(&s[RANGE], "df");
+        assert_eq!(s[RANGE].len(), RANGE.len());
     }
 
     #[test]
-    fn compare_with_range() {
-        let expected = Range{start:2usize, end:4usize};
-        assert_eq!(RANGE.range(), expected);
-        assert_ne!(OTHER_RANGE.range(), expected);
+    fn rangeusize_is_empty() {
+        assert!(RangeUsize::new(2, 2).is_empty());
+        assert!(!RANGE.is_empty());
     }
 
     #[test]
-    fn compare_with_rangeto() {
-        let expected = RangeTo{end:4usize};
-        assert_eq!(RANGE.range_to(), expected);
-        assert_ne!(OTHER_RANGE.range_to(), expected);
+    fn rangeusize_start() {
+        let expected = RangeUsize::new(1, 4);
+        let mut input = RANGE;
+        input.start(1);
+        assert_eq!(input, expected);
+        let expected = RangeUsize::new(5, 4);
+        input.start(5);
+        assert_eq!(input, expected);
+    }
+
+    #[test]
+    fn rangeusize_shift() {
+        let expected = RangeUsize::new(5, 7);
+        assert_eq!(RANGE.shift(3), expected);
+    }
+
+    #[test]
+    fn rangeusize_end() {
+        let expected = RangeUsize::new(2, 3);
+        let mut input = RANGE;
+        input.end(3);
+        assert_eq!(input, expected);
     }
 }
