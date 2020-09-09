@@ -5,7 +5,7 @@ use base64::encode;
 
 use crate::error::{Error, Result};
 use crate::range::RangeUsize;
-use crate::utils::{is_valid_userinfo, decode};
+use crate::utils::{decode, is_valid_userinfo};
 
 /// authority = [ userinfo "@" ] host [ ":" port ]
 #[derive(Clone, Debug, PartialEq)]
@@ -76,34 +76,32 @@ impl Authority {
     }
 }
 
-// fn contain_reserver_char(s: &str) -> bool {
-//     s.chars()
-//         .any(|ch| [':', '/', '?', '#', '[', ']', '@'].contains(&ch))
-// }
+fn check_username(s: &str) -> Result<()> {
+    if s.is_empty() {
+        Err(Error::EmptyUsername)
+    } else if is_valid_userinfo(s, false) {
+        Ok(())
+    } else {
+        Err(Error::InvalidUsername(s.to_string()))
+    }
+}
+
+fn check_password(s: &str) -> Result<()> {
+    if is_valid_userinfo(s, true) {
+        Ok(())
+    } else {
+        Err(Error::InvalidPassword(s.to_string()))
+    }
+}
 
 fn check_user_info(s: &str) -> Result<()> {
-    if let Some(colon_pos) = s.find(':') {
-        if colon_pos == 0 {
-            Err(Error::EmptyUsername)
-        } else if colon_pos == s.len() {
-            Ok(())
-        } else if !is_valid_userinfo(&s[..colon_pos]) {
-            Err(Error::InvalidUsername(s[..colon_pos].to_string()))
-        } else if !is_valid_userinfo(&s[colon_pos + 1..]) {
-            Err(Error::InvalidPassword(s[colon_pos + 1..].to_string()))
-        } else {
-            Ok(())
-        }
+    if s.is_empty() {
+        Err(Error::EmptyUserInfo)
+    } else if let Some(colon_pos) = s.find(':') {
+        check_username(&s[..colon_pos]).and_then(|_| check_password(&s[colon_pos + 1..]))
     } else {
-        if s.is_empty() {
-            Err(Error::EmptyUserInfo)
-        } else if !is_valid_userinfo(&s) {
-            Err(Error::InvalidUsername(s.to_string()))
-        } else {
-            Ok(())
-        }
-    }?;
-    Ok(())
+        check_username(s)
+    }
 }
 
 /// userinfo = *( unreserved / pct-encoded / sub-delims / ":" )
@@ -264,9 +262,9 @@ mod tests {
     #[test]
     fn reserver_char() {
         let bad_str = "myscheme://authority<\"hi\">/foo";
-        assert!(!is_valid_userinfo(bad_str));
+        assert!(!is_valid_userinfo(bad_str, false));
         let good_str = "myschemeauthority!$&()*:+,;=-._~";
-        assert!(is_valid_userinfo(good_str));
+        assert!(is_valid_userinfo(good_str, true));
     }
 
     #[test]
