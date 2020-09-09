@@ -5,28 +5,25 @@ use percent_encoding::percent_decode_str;
 // sub-delims  = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "="
 // unreserved  = ALPHA / DIGIT / "-" / "." / "_" / "~"
 
-// scheme      = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
-// userinfo    = *( unreserved / pct-encoded / sub-delims / ":" )
-
 pub const GEN_DELIMS: [char; 7] = [':', '/', '?', '#', '[', ']', '@'];
 pub const SUB_DELIMS: [char; 11] = ['!', '$', '&', '\'', '(', ')', '*', '+', ',', ';', '='];
 pub const UNRESERVED: [char; 4] = ['-', '.', '_', '~'];
+pub const SCHEME_ALLOWED_CHARS: [char; 3] = ['+' , '-' , '.'];
 
-pub fn contains_gen_delims(input: &str) -> bool {
-    input.chars().any(|ch| GEN_DELIMS.contains(&ch))
+/// userinfo    = *( unreserved / pct-encoded / sub-delims / ":" )
+pub fn is_valid_userinfo(input: &str) -> bool {
+    input.chars().all(|ch| ch.is_alphanumeric() || UNRESERVED.contains(&ch) || SUB_DELIMS.contains(&ch) || ch==':' || ch =='%')
 }
 
-pub fn contains_sub_delims(input: &str) -> bool {
-    input.chars().any(|ch| SUB_DELIMS.contains(&ch))
+/// scheme      = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
+pub fn is_valid_scheme(input: &str) -> bool {
+    input[0..1].chars().all(|ch| ch.is_alphabetic())
+        && input[1..]
+            .chars()
+            .all(|ch| ch.is_alphanumeric() || SCHEME_ALLOWED_CHARS.contains(&ch))
 }
 
-pub fn all_unreserved(input: &str) -> bool {
-    input
-        .chars()
-        .any(|ch| ch.is_alphanumeric() || UNRESERVED.contains(&ch))
-}
-
-pub(crate) fn decode(v: &str) -> Option<String> {
+pub fn decode(v: &str) -> Option<String> {
     percent_decode_str(v)
         .decode_utf8()
         .map_or(None, |op| Some(op.to_string()))

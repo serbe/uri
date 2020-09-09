@@ -5,7 +5,7 @@ use base64::encode;
 
 use crate::error::{Error, Result};
 use crate::range::RangeUsize;
-use crate::utils::decode;
+use crate::utils::{is_valid_userinfo, decode};
 
 /// authority = [ userinfo "@" ] host [ ":" port ]
 #[derive(Clone, Debug, PartialEq)]
@@ -76,10 +76,10 @@ impl Authority {
     }
 }
 
-fn contain_reserver_char(s: &str) -> bool {
-    s.chars()
-        .any(|ch| [':', '/', '?', '#', '[', ']', '@'].contains(&ch))
-}
+// fn contain_reserver_char(s: &str) -> bool {
+//     s.chars()
+//         .any(|ch| [':', '/', '?', '#', '[', ']', '@'].contains(&ch))
+// }
 
 fn check_user_info(s: &str) -> Result<()> {
     if let Some(colon_pos) = s.find(':') {
@@ -87,9 +87,9 @@ fn check_user_info(s: &str) -> Result<()> {
             Err(Error::EmptyUsername)
         } else if colon_pos == s.len() {
             Ok(())
-        } else if contain_reserver_char(&s[..colon_pos]) {
+        } else if !is_valid_userinfo(&s[..colon_pos]) {
             Err(Error::InvalidUsername(s[..colon_pos].to_string()))
-        } else if contain_reserver_char(&s[colon_pos + 1..]) {
+        } else if !is_valid_userinfo(&s[colon_pos + 1..]) {
             Err(Error::InvalidPassword(s[colon_pos + 1..].to_string()))
         } else {
             Ok(())
@@ -97,7 +97,7 @@ fn check_user_info(s: &str) -> Result<()> {
     } else {
         if s.is_empty() {
             Err(Error::EmptyUserInfo)
-        } else if contain_reserver_char(&s) {
+        } else if !is_valid_userinfo(&s) {
             Err(Error::InvalidUsername(s.to_string()))
         } else {
             Ok(())
@@ -264,9 +264,9 @@ mod tests {
     #[test]
     fn reserver_char() {
         let bad_str = "myscheme://authority<\"hi\">/foo";
-        assert!(contain_reserver_char(bad_str));
-        let good_str = "myschemeauthority<\"hi\">foo";
-        assert!(!contain_reserver_char(good_str));
+        assert!(!is_valid_userinfo(bad_str));
+        let good_str = "myschemeauthority!$&()*:+,;=-._~";
+        assert!(is_valid_userinfo(good_str));
     }
 
     #[test]
