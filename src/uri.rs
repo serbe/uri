@@ -324,13 +324,13 @@ impl Uri {
     //     self.addr.clone()
     // }
 
-    // pub fn base64_auth(&self) -> Option<String> {
-    //     if self.scheme() == "http" || self.scheme() == "https" {
-    //         self.authority.base64_auth()
-    //     } else {
-    //         None
-    //     }
-    // }
+    pub fn base64_auth(&self) -> Option<String> {
+        if (self.scheme() == "http" || self.scheme() == "https") && self.has_authority() {
+            self.authority.base64_auth()
+        } else {
+            None
+        }
+    }
 
     // pub fn set_authority(&self, username: &str, password: &str) -> Result<Self> {
     //     let username = if username.is_empty() {
