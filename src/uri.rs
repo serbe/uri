@@ -10,7 +10,7 @@ use std::string::ToString;
 use crate::authority::Authority;
 use crate::error::{Error, Result};
 use crate::range::RangeUsize;
-use crate::utils::decode;
+use crate::utils::{all_unreserved, decode};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Uri {
@@ -420,19 +420,11 @@ impl FromStr for Uri {
     }
 }
 
-
 /// scheme = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
 fn check_scheme(scheme: &str) -> Result<()> {
     if scheme.is_empty() {
-        return Err(Error::EmptyScheme);
-    }
-    if scheme.char_indices().all(|(pos, ch)| {
-        if pos == 0 {
-            ch.is_alphabetic()
-        } else {
-            ch.is_alphanumeric() || ch == '+' || ch == '-' || ch == '.'
-        }
-    }) {
+        Err(Error::EmptyScheme)
+    } else if scheme[0..1].chars().all(|ch| ch.is_alphabetic()) && all_unreserved(&scheme[1..]) {
         Ok(())
     } else {
         Err(Error::InvalidScheme(scheme.to_string()))
