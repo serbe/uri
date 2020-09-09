@@ -5,14 +5,24 @@ use percent_encoding::percent_decode_str;
 // sub-delims  = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "="
 // unreserved  = ALPHA / DIGIT / "-" / "." / "_" / "~"
 
-pub const GEN_DELIMS: [char; 7] = [':', '/', '?', '#', '[', ']', '@'];
+// pub const GEN_DELIMS: [char; 7] = [':', '/', '?', '#', '[', ']', '@'];
 pub const SUB_DELIMS: [char; 11] = ['!', '$', '&', '\'', '(', ')', '*', '+', ',', ';', '='];
 pub const UNRESERVED: [char; 4] = ['-', '.', '_', '~'];
-pub const SCHEME_ALLOWED_CHARS: [char; 3] = ['+' , '-' , '.'];
+pub const SCHEME_ALLOWED_CHARS: [char; 3] = ['+', '-', '.'];
 
 /// userinfo    = *( unreserved / pct-encoded / sub-delims / ":" )
-pub fn is_valid_userinfo(input: &str) -> bool {
-    input.chars().all(|ch| ch.is_alphanumeric() || UNRESERVED.contains(&ch) || SUB_DELIMS.contains(&ch) || ch==':' || ch =='%')
+pub fn is_valid_userinfo(input: &str, check_colon: bool) -> bool {
+    let additionals = if check_colon {
+        vec![':', '%']
+    } else {
+        vec!['%']
+    };
+    input.chars().all(|ch| {
+        ch.is_alphanumeric()
+            || UNRESERVED.contains(&ch)
+            || SUB_DELIMS.contains(&ch)
+            || additionals.contains(&ch)
+    })
 }
 
 /// scheme      = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
