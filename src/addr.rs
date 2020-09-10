@@ -49,7 +49,7 @@ impl FromStr for Addr {
         } else if is_valid_ups(s, false) {
             Ok(Addr::Domain(s.to_string()))
         } else {
-            Err(Error::ParseAddr)
+            Err(Error::ParseAddr(s.to_string()))
         }
     }
 }

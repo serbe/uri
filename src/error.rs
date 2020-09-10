@@ -14,8 +14,8 @@ pub enum Error {
     StdParseAddr(#[from] net::AddrParseError),
     #[error("Parse ip version 6")]
     ParseIPv6,
-    #[error("Parse address")]
-    ParseAddr,
+    #[error("Parse address: {0}")]
+    ParseAddr(String),
     #[error("Parse host")]
     ParseHost,
     #[error("Parse port: {0}")]
@@ -51,7 +51,7 @@ impl PartialEq for Error {
                 self_err == other_err
             }
             (Error::ParseIPv6, Error::ParseIPv6) => true,
-            (Error::ParseAddr, Error::ParseAddr) => true,
+            (Error::ParseAddr(self_err), Error::ParseAddr(other_err)) => self_err == other_err,
             (Error::ParseHost, Error::ParseHost) => true,
             (Error::ParsePort(self_err), Error::ParsePort(other_err)) => self_err == other_err,
             (Error::EmptyScheme, Error::EmptyScheme) => true,
