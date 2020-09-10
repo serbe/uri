@@ -3,6 +3,7 @@ use std::{
     str::FromStr,
 };
 
+use crate::utils::is_valid_ups;
 use crate::error::{Error, Result};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -45,19 +46,12 @@ impl FromStr for Addr {
             Ok(Addr::Ipv6(ipv6))
         } else if let Ok(ipv4) = s.parse::<Ipv4Addr>() {
             Ok(Addr::Ipv4(ipv4))
-        } else if valid_domain(s) {
+        } else if is_valid_ups(s, false) {
             Ok(Addr::Domain(s.to_string()))
         } else {
             Err(Error::ParseAddr)
         }
     }
-}
-
-fn valid_domain(s: &str) -> bool {
-    let i_chars = vec![
-        '\0', '\t', '\n', '\r', ' ', '#', '%', '/', ':', '?', '@', '[', '\\', ']',
-    ];
-    i_chars.iter().all(|&c| !s.contains(c))
 }
 
 #[cfg(test)]
