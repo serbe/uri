@@ -1,6 +1,6 @@
 use std::convert::TryFrom;
-// use std::fmt;
-// use std::net::{SocketAddr, ToSocketAddrs};
+use std::fmt;
+use std::net::{SocketAddr, ToSocketAddrs};
 // use std::ops::Range;
 use std::str;
 use std::str::FromStr;
@@ -12,7 +12,7 @@ use crate::error::{Error, Result};
 use crate::range::RangeUsize;
 use crate::utils::{decode, is_valid_scheme};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Uri {
     pub(crate) inner: String,
     pub(crate) scheme: RangeUsize,
@@ -298,15 +298,19 @@ impl Uri {
         }
     }
 
-    // pub fn socket_addrs(&self) -> Result<Vec<SocketAddr>> {
-    //     Ok(self.host_port().to_socket_addrs()?.collect())
-    // }
+    pub fn socket_addrs(&self) -> Result<Vec<SocketAddr>> {
+        Ok(self
+            .host_port()
+            .ok_or(Error::EmptyHost)
+            .and_then(|host_port| host_port.to_socket_addrs().map_err(|err| Error::IO(err)))?
+            .collect())
+    }
 
-    // pub fn socket_addr(&self) -> Result<SocketAddr> {
-    //     self.socket_addrs()?
-    //         .pop()
-    //         .map_or(Err(Error::SocketAddr), Ok)
-    // }
+    pub fn socket_addr(&self) -> Result<SocketAddr> {
+        self.socket_addrs()?
+            .pop()
+            .map_or(Err(Error::SocketAddr), Ok)
+    }
 
     pub fn is_ssl(&self) -> bool {
         self.scheme() == "https"
@@ -356,25 +360,25 @@ impl Uri {
     // }
 }
 
-// impl fmt::Display for Uri {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         let mut uri = self.inner.to_string();
-//         let auth = self.authority.to_string();
-//         let start = self.scheme.end + 3;
-//         uri.replace_range(start..(start + auth.len()), &auth);
-//         write!(f, "{}", uri)
-//     }
-// }
+impl fmt::Display for Uri {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut uri = self.inner.to_string();
+        let auth = self.authority.to_string();
+        let start = self.scheme.end + 3;
+        uri.replace_range(start..(start + auth.len()), &auth);
+        write!(f, "{}", uri)
+    }
+}
 
-// impl fmt::Debug for Uri {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         let mut uri = self.inner.to_string();
-//         let auth = self.authority.to_string();
-//         let start = self.scheme.end + 3;
-//         uri.replace_range(start..(start + auth.len()), &auth);
-//         write!(f, "{}", uri)
-//     }
-// }
+impl fmt::Debug for Uri {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut uri = self.inner.to_string();
+        let auth = self.authority.to_string();
+        let start = self.scheme.end + 3;
+        uri.replace_range(start..(start + auth.len()), &auth);
+        write!(f, "{}", uri)
+    }
+}
 
 impl FromStr for Uri {
     type Err = Error;
