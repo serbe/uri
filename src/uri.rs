@@ -103,6 +103,10 @@ impl Uri {
         self.host.map(|host| &self.inner[host])
     }
 
+    pub fn host_ok(&self) -> Result<&str> {
+        self.host.map(|host| &self.inner[host]).ok_or(Error::EmptyHost)
+    }
+
     pub fn host_header(&self) -> String {
         match (self.host(), self.default_port()) {
             (Some(host), Some(port)) if port == 80 || port == 8080 => host.to_string(),
