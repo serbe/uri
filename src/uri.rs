@@ -1,7 +1,7 @@
 use std::convert::TryFrom;
 use std::fmt;
 use std::net::{SocketAddr, ToSocketAddrs};
-// use std::ops::Range;
+use std::ops::Range;
 use std::str;
 use std::str::FromStr;
 use std::string::ToString;
@@ -59,79 +59,6 @@ impl TryFrom<&Uri> for Uri {
 }
 
 impl Uri {
-    //     fn new(
-    //         scheme: &str,
-    //         username: Option<&str>,
-    //         password: Option<&str>,
-    //         host: &str,
-    //         port: Option<u16>,
-    //         path: Option<&str>,
-    //         query: Option<&str>,
-    //         fragment: Option<&str>,
-    //     ) -> Result<Self> {
-    //         let mut uri = String::new();
-    //         if !scheme.is_empty() {
-    //             uri.push_str(scheme);
-    //             uri.push_str("://");
-    //         }
-    //         match (username, password) {
-    //             (Some(username), Some(password)) => {
-    //                 uri.push_str(username);
-    //                 uri.push_str(":");
-    //                 uri.push_str(password);
-    //                 uri.push_str("@");
-    //             }
-    //             (Some(username), None) => {
-    //                 uri.push_str(username);
-    //                 uri.push_str("@");
-    //             }
-    //             _ => (),
-    //         }
-    //         uri.push_str(host);
-    //         if let Some(port) = port {
-    //             uri.push_str(":");
-    //             uri.push_str(&port.to_string());
-    //         }
-    //         if let Some(path) = path {
-    //             uri.push_str(path);
-    //         }
-    //         if let Some(query) = query {
-    //             uri.push_str("?");
-    //             uri.push_str(query);
-    //         }
-    //         if let Some(fragment) = fragment {
-    //             uri.push_str("#");
-    //             uri.push_str(fragment);
-    //         }
-    //         uri.parse()
-    //     }
-
-    // pub fn set_username(&self, username: &str) -> Result<Uri> {
-    //     Uri::new(
-    //         self.scheme(),
-    //         Some(username),
-    //         self.authority().password(),
-    //         self.host(),
-    //         self.port(),
-    //         self.path(),
-    //         self.query(),
-    //         self.fragment(),
-    //     )
-    // }
-
-    // pub fn set_password(&self, password: &str) -> Result<Uri> {
-    //     Uri::new(
-    //         self.scheme(),
-    //         self.authority().username(),
-    //         Some(password),
-    //         self.host(),
-    //         self.port(),
-    //         self.path(),
-    //         self.query(),
-    //         self.fragment(),
-    //     )
-    // }
-
     pub fn as_str(&self) -> &str {
         &self.inner
     }
@@ -282,7 +209,7 @@ impl Uri {
         }
 
         self.host_port()
-            .map(|hp| format!("{}://{}{}", self.scheme(), hp, result).to_string())
+            .map(|hp| format!("{}://{}{}", self.scheme(), hp, result))
     }
 
     pub fn origin(&self) -> Option<String> {
@@ -292,7 +219,7 @@ impl Uri {
 
     pub fn host_port(&self) -> Option<String> {
         match (self.host(), self.default_port()) {
-            (Some(host), Some(port)) => Some(format!("{}:{}", host, port).to_string()),
+            (Some(host), Some(port)) => Some(format!("{}:{}", host, port)),
             (Some(host), None) => Some(host.to_string()),
             _ => None,
         }
@@ -302,7 +229,7 @@ impl Uri {
         Ok(self
             .host_port()
             .ok_or(Error::EmptyHost)
-            .and_then(|host_port| host_port.to_socket_addrs().map_err(|err| Error::IO(err)))?
+            .and_then(|host_port| host_port.to_socket_addrs().map_err(Error::IO))?
             .collect())
     }
 
@@ -336,28 +263,62 @@ impl Uri {
         }
     }
 
-    // pub fn set_authority(&self, username: &str, password: &str) -> Result<Self> {
-    //     let username = if username.is_empty() {
-    //         None
-    //     } else {
-    //         Some(username)
-    //     };
-    //     let password = if username.is_none() || password.is_empty() {
-    //         None
-    //     } else {
-    //         Some(password)
-    //     };
-    //     Uri::new(
-    //         self.scheme(),
-    //         username,
-    //         password,
-    //         self.host(),
-    //         self.port(),
-    //         self.path(),
-    //         self.query(),
-    //         self.fragment(),
-    //     )
-    // }
+    pub fn set_authority(&self, username: &str, password: &str) -> Result<Uri> {
+        self.set_username(username)?.set_password(password)
+    }
+
+    pub fn set_username(&self, username: &str) -> Result<Uri> {
+        let mut uri = self.inner.clone();
+        match (self.username, self.host) {
+            (_, None) => return Err(Error::EmptyHost),
+            (None, Some(host)) => {
+                uri.replace_range(
+                    Range {
+                        start: host.start - 1,
+                        end: host.start - 1,
+                    },
+                    username,
+                );
+                uri.replace_range(
+                    Range {
+                        start: host.start - 1,
+                        end: host.start - 1,
+                    },
+                    "@",
+                )
+            }
+            (Some(old_username), Some(_)) => uri.replace_range(old_username.range(), username),
+        };
+        uri.parse()
+    }
+
+    pub fn set_password(&self, password: &str) -> Result<Uri> {
+        let mut uri = self.inner.clone();
+        match (self.username, self.password, self.host) {
+            (_, _, None) => return Err(Error::EmptyHost),
+            (None, _, Some(_)) => return Err(Error::EmptyUsername),
+            (Some(username), None, Some(_)) => {
+                uri.replace_range(
+                    Range {
+                        start: username.start + 1,
+                        end: username.start + 1,
+                    },
+                    password,
+                );
+                uri.replace_range(
+                    Range {
+                        start: username.start + 1,
+                        end: username.start + 1,
+                    },
+                    ":",
+                )
+            }
+            (Some(_), Some(old_password), Some(_)) => {
+                uri.replace_range(old_password.range(), password)
+            }
+        };
+        uri.parse()
+    }
 }
 
 impl fmt::Display for Uri {
@@ -405,7 +366,7 @@ impl FromStr for Uri {
         } else {
             Some(authority.host.shift(shift))
         };
-        let port = authority.port.map(|port| port);
+        let port = authority.port;
 
         let path = get_path(s, &mut chunk);
 
