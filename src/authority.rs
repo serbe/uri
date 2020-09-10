@@ -18,10 +18,10 @@ pub struct Authority {
 }
 
 impl Default for Authority {
-         fn default() -> Self {
-             Self::new()
-         }
+    fn default() -> Self {
+        Self::new()
     }
+}
 
 impl Authority {
     pub fn new() -> Self {
