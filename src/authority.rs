@@ -17,6 +17,12 @@ pub struct Authority {
     pub(crate) port: Option<u16>,
 }
 
+impl Default for Authority {
+         fn default() -> Self {
+             Self::new()
+         }
+    }
+
 impl Authority {
     pub fn new() -> Self {
         Authority {
