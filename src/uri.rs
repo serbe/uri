@@ -252,7 +252,7 @@ impl Uri {
     }
 
     pub fn addr(&self) -> Result<Addr> {
-        self.host_port().ok_or(Error::EmptyHost)?.parse()
+        self.host().ok_or(Error::EmptyHost)?.parse()
     }
 
     pub fn base64_auth(&self) -> Option<String> {
