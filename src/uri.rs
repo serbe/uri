@@ -6,7 +6,7 @@ use std::str;
 use std::str::FromStr;
 use std::string::ToString;
 
-// use crate::addr::Addr;
+use crate::addr::Addr;
 use crate::authority::Authority;
 use crate::error::{Error, Result};
 use crate::range::RangeUsize;
@@ -324,9 +324,9 @@ impl Uri {
         !self.authority.is_empty()
     }
 
-    // pub fn addr(&self) -> Addr {
-    //     self.addr.clone()
-    // }
+    pub fn addr(&self) -> Result<Addr> {
+        self.host_port().ok_or(Error::EmptyHost)?.parse()
+    }
 
     pub fn base64_auth(&self) -> Option<String> {
         if (self.scheme() == "http" || self.scheme() == "https") && self.has_authority() {
