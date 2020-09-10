@@ -11,7 +11,7 @@ pub(crate) const UNRESERVED: [char; 4] = ['-', '.', '_', '~'];
 pub(crate) const SCHEME_ALLOWED_CHARS: [char; 3] = ['+', '-', '.'];
 
 /// userinfo    = *( unreserved / pct-encoded / sub-delims / ":" )
-pub(crate) fn is_valid_userinfo(input: &str, colon: bool) -> bool {
+pub(crate) fn is_valid_ups(input: &str, colon: bool) -> bool {
     let additionals = if colon { vec![':', '%'] } else { vec!['%'] };
     input.chars().all(|ch| {
         ch.is_alphanumeric()
@@ -42,7 +42,7 @@ mod tests {
     #[test]
     fn userinfo_with_colon() {
         let s = "asd1209!$&,:()*+,;=-._~";
-        assert!(is_valid_userinfo(s, true));
+        assert!(is_valid_ups(s, true));
     }
 
     #[test]

@@ -5,7 +5,7 @@ use base64::encode;
 
 use crate::error::{Error, Result};
 use crate::range::RangeUsize;
-use crate::utils::{decode, is_valid_userinfo};
+use crate::utils::{decode, is_valid_ups};
 
 /// authority = [ userinfo "@" ] host [ ":" port ]
 #[derive(Clone, Debug, PartialEq)]
@@ -85,7 +85,7 @@ impl Authority {
 fn check_username(s: &str) -> Result<()> {
     if s.is_empty() {
         Err(Error::EmptyUsername)
-    } else if is_valid_userinfo(s, false) {
+    } else if is_valid_ups(s, false) {
         Ok(())
     } else {
         Err(Error::InvalidUsername(s.to_string()))
@@ -93,7 +93,7 @@ fn check_username(s: &str) -> Result<()> {
 }
 
 fn check_password(s: &str) -> Result<()> {
-    if is_valid_userinfo(s, true) {
+    if is_valid_ups(s, true) {
         Ok(())
     } else {
         Err(Error::InvalidPassword(s.to_string()))
@@ -268,9 +268,9 @@ mod tests {
     #[test]
     fn reserver_char() {
         let bad_str = "myscheme://authority<\"hi\">/foo";
-        assert!(!is_valid_userinfo(bad_str, false));
+        assert!(!is_valid_ups(bad_str, false));
         let good_str = "myschemeauthority!$&()*:+,;=-._~";
-        assert!(is_valid_userinfo(good_str, true));
+        assert!(is_valid_ups(good_str, true));
     }
 
     #[test]
