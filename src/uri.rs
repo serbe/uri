@@ -103,8 +103,8 @@ impl Uri {
         self.host.map(|host| &self.inner[host])
     }
 
-    pub fn host_string(&self) -> String {
-        self.host.map_or(String::new(), |host| self.inner[host].to_string())
+    pub fn host_str(&self) -> &str {
+        self.host.map_or("", |host| &self.inner[host])
     }
 
     pub fn host_header(&self) -> String {
