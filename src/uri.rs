@@ -107,11 +107,14 @@ impl Uri {
         self.host.map_or("", |host| &self.inner[host])
     }
 
-    pub fn host_header(&self) -> String {
-        match (self.host(), self.default_port()) {
-            (Some(host), Some(port)) if port == 80 || port == 8080 => host.to_string(),
-            (Some(host), Some(port)) => format!("{}:{}", host, port),
-            _ => String::new(),
+    pub fn host_header(&self) -> &str {
+        match (self.host, self.port) {
+            (Some(host), Some(port)) if Some(port) == self.default_port() => &self.inner[host],
+            (Some(host), Some(port)) => {
+                &self.inner[host.start..host.end + format!("{}", port).len() + 1]
+            }
+            (Some(host), None) => &self.inner[host],
+            _ => "",
         }
     }
 
@@ -120,56 +123,53 @@ impl Uri {
     }
 
     pub fn default_port(&self) -> Option<u16> {
-        match self.port() {
-            Some(port) => Some(port),
-            None => match self.scheme() {
-                "acap" => Some(674),
-                "afp" => Some(548),
-                "dict" => Some(2628),
-                "dns" => Some(53),
-                "file" => None,
-                "ftp" => Some(21),
-                "git" => Some(9418),
-                "gopher" => Some(70),
-                "http" => Some(80),
-                "https" => Some(443),
-                "imap" => Some(143),
-                "ipp" => Some(631),
-                "ipps" => Some(631),
-                "irc" => Some(194),
-                "ircs" => Some(6697),
-                "ldap" => Some(389),
-                "ldaps" => Some(636),
-                "mms" => Some(1755),
-                "msrp" => Some(2855),
-                "msrps" => None,
-                "mtqp" => Some(1038),
-                "nfs" => Some(111),
-                "nntp" => Some(119),
-                "nntps" => Some(563),
-                "pop" => Some(110),
-                "prospero" => Some(1525),
-                "redis" => Some(6379),
-                "rsync" => Some(873),
-                "rtsp" => Some(554),
-                "rtsps" => Some(322),
-                "rtspu" => Some(5005),
-                "sftp" => Some(22),
-                "smb" => Some(445),
-                "snmp" => Some(161),
-                "socks5" => Some(1080),
-                "socks5h" => Some(1080),
-                "ssh" => Some(22),
-                "steam" => None,
-                "svn" => Some(3690),
-                "telnet" => Some(23),
-                "ventrilo" => Some(3784),
-                "vnc" => Some(5900),
-                "wais" => Some(210),
-                "ws" => Some(80),
-                "wss" => Some(443),
-                _ => None,
-            },
+        match self.scheme() {
+            "acap" => Some(674),
+            "afp" => Some(548),
+            "dict" => Some(2628),
+            "dns" => Some(53),
+            "file" => None,
+            "ftp" => Some(21),
+            "git" => Some(9418),
+            "gopher" => Some(70),
+            "http" => Some(80),
+            "https" => Some(443),
+            "imap" => Some(143),
+            "ipp" => Some(631),
+            "ipps" => Some(631),
+            "irc" => Some(194),
+            "ircs" => Some(6697),
+            "ldap" => Some(389),
+            "ldaps" => Some(636),
+            "mms" => Some(1755),
+            "msrp" => Some(2855),
+            "msrps" => None,
+            "mtqp" => Some(1038),
+            "nfs" => Some(111),
+            "nntp" => Some(119),
+            "nntps" => Some(563),
+            "pop" => Some(110),
+            "prospero" => Some(1525),
+            "redis" => Some(6379),
+            "rsync" => Some(873),
+            "rtsp" => Some(554),
+            "rtsps" => Some(322),
+            "rtspu" => Some(5005),
+            "sftp" => Some(22),
+            "smb" => Some(445),
+            "snmp" => Some(161),
+            "socks5" => Some(1080),
+            "socks5h" => Some(1080),
+            "ssh" => Some(22),
+            "steam" => None,
+            "svn" => Some(3690),
+            "telnet" => Some(23),
+            "ventrilo" => Some(3784),
+            "vnc" => Some(5900),
+            "wais" => Some(210),
+            "ws" => Some(80),
+            "wss" => Some(443),
+            _ => None,
         }
     }
 
@@ -203,17 +203,6 @@ impl Uri {
     }
 
     pub fn proxy_request_uri(&self) -> &str {
-        // let mut result = "/";
-
-        // for v in &[self.path, self.query, self.fragment] {
-        //     if let Some(r) = v {
-        //         result = &self.inner[r.start..];
-        //         break;
-        //     }
-        // }
-
-        // self.host_port()
-        //     .map(|hp| format!("{}://{}{}", self.scheme(), hp, result).as_str())
         &self.inner
     }
 

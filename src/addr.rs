@@ -3,8 +3,8 @@ use std::{
     str::FromStr,
 };
 
-use crate::utils::is_valid_ups;
 use crate::error::{Error, Result};
+use crate::utils::is_valid_ups;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Addr {
