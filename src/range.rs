@@ -1,5 +1,5 @@
 use std::cmp::{max, min};
-use std::ops::{Add, Index, Range, RangeTo};
+use std::ops::{Add, Index, Range, RangeFrom, RangeTo};
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct RangeUsize {
@@ -21,6 +21,10 @@ impl RangeUsize {
 
     pub fn range_to(&self) -> RangeTo<usize> {
         RangeTo { end: self.end }
+    }
+
+    pub fn range_from(&self) -> RangeFrom<usize> {
+        RangeFrom { start: self.start }
     }
 
     pub(crate) fn start(&mut self, new_start: usize) {

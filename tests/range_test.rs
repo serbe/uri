@@ -1,4 +1,4 @@
-use std::ops::{Range, RangeTo};
+use std::ops::{Range, RangeFrom, RangeTo};
 use uri::RangeUsize;
 
 const RANGE: RangeUsize = RangeUsize { start: 2, end: 4 };
@@ -26,4 +26,11 @@ fn compare_with_rangeto() {
     let expected = RangeTo { end: 4usize };
     assert_eq!(RANGE.range_to(), expected);
     assert_ne!(OTHER_RANGE.range_to(), expected);
+}
+
+#[test]
+fn compare_with_rangefrom() {
+    let expected = RangeFrom { start: 2usize };
+    assert_eq!(RANGE.range_from(), expected);
+    assert_ne!(OTHER_RANGE.range_from(), expected);
 }
