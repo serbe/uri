@@ -27,3 +27,12 @@ fn get_host_str() {
     let http = "http://api.ipify.org".parse::<Uri>().unwrap();
     assert_eq!(http.host_str(), "api.ipify.org");
 }
+
+#[test]
+fn get_host_with_port() {
+    let http = "http://api.ipify.org".parse::<Uri>().unwrap();
+    assert_eq!(http.host_with_port(), Some("api.ipify.org:80".to_string()));
+
+    let http = "http://api.ipify.org:1245".parse::<Uri>().unwrap();
+    assert_eq!(http.host_with_port(), Some("api.ipify.org:1245".to_string()));
+}

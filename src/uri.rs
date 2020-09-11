@@ -218,9 +218,23 @@ impl Uri {
         }
     }
 
+    pub fn host_with_port(&self) -> Option<String> {
+        match (self.host, self.port) {
+            (Some(host), Some(port)) => {
+                Some(self.inner[host.start..host.end + format!("{}", port).len() + 1].to_string())
+            }
+            (Some(host), None) => Some(format!(
+                "{}:{}",
+                &self.inner[host],
+                self.default_port().map_or(80, |port| port)
+            )),
+            _ => None,
+        }
+    }
+
     pub fn socket_addrs(&self) -> Result<Vec<SocketAddr>> {
         Ok(self
-            .host_port()
+            .host_with_port()
             .ok_or(Error::EmptyHost)
             .and_then(|host_port| host_port.to_socket_addrs().map_err(Error::IO))?
             .collect())
