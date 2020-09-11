@@ -21,3 +21,9 @@ fn ipv4_addr() {
     assert_eq!(socks.host(), Some("127.0.0.1"));
     assert!(socks.addr().is_ok());
 }
+
+#[test]
+fn get_host_str() {
+    let http = "http://api.ipify.org".parse::<Uri>().unwrap();
+    assert_eq!(http.host_str(), "api.ipify.org");
+}

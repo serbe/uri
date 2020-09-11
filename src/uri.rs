@@ -119,7 +119,7 @@ impl Uri {
     }
 
     pub fn port(&self) -> Option<u16> {
-        self.authority().and_then(|authority| authority.port())
+        self.port
     }
 
     pub fn default_port(&self) -> Option<u16> {
@@ -189,32 +189,31 @@ impl Uri {
         self.fragment.map(|range| &self.inner[range])
     }
 
-    pub fn request_uri(&self) -> &str {
-        let mut result = "/";
-
-        for v in &[self.path, self.query, self.fragment] {
-            if let Some(r) = v {
-                result = &self.inner[r.start..];
-                break;
-            }
+    /// Request-URI    = "*" | absoluteURI | abs_path | authority
+    pub fn abs_path(&self) -> &str {
+        match (self.path, self.query, self.fragment) {
+            (Some(path), _, _) => &self.inner[path.range_from()],
+            (None, Some(query), _) => &self.inner[query.range_from()],
+            (None, None, Some(fragment)) => &self.inner[fragment.range_from()],
+            _ => "/",
         }
-
-        result
     }
 
-    pub fn proxy_request_uri(&self) -> &str {
+    pub fn absolute_uri(&self) -> &str {
         &self.inner
     }
 
     pub fn origin(&self) -> Option<String> {
         self.host_port()
-            .map(|hp| format!("{}://{}", self.scheme(), hp))
+            .map(|host_port| format!("{}://{}", self.scheme(), host_port))
     }
 
-    pub fn host_port(&self) -> Option<String> {
-        match (self.host(), self.default_port()) {
-            (Some(host), Some(port)) => Some(format!("{}:{}", host, port)),
-            (Some(host), None) => Some(host.to_string()),
+    pub fn host_port(&self) -> Option<&str> {
+        match (self.host, self.port) {
+            (Some(host), Some(port)) => {
+                Some(&self.inner[host.start..host.end + format!("{}", port).len() + 1])
+            }
+            (Some(host), None) => Some(&self.inner[host]),
             _ => None,
         }
     }
@@ -236,10 +235,6 @@ impl Uri {
     pub fn is_ssl(&self) -> bool {
         self.scheme() == "https"
     }
-
-    // pub fn host_vec(&self) -> Vec<u8> {
-    //     self.addr.to_vec()
-    // }
 
     pub fn has_authority(&self) -> bool {
         !self.authority.is_empty()
@@ -563,7 +558,7 @@ mod tests {
     #[test]
     fn host_header_t1() {
         let uri = "http://www.example.org:8080".parse::<Uri>().unwrap();
-        assert_eq!(uri.host_header(), "www.example.org");
+        assert_eq!(uri.host_header(), "www.example.org:8080");
     }
 
     #[test]
@@ -593,7 +588,7 @@ mod tests {
     #[test]
     fn default_port_t1() {
         let uri = "http://www.example.org:443".parse::<Uri>().unwrap();
-        assert_eq!(uri.default_port(), Some(443));
+        assert_eq!(uri.default_port(), Some(80));
     }
 
     #[test]
@@ -752,7 +747,7 @@ mod tests {
         let uri = "http://rest.rsc.io/foo%2fbar/baz%2Fquux?alt=media"
             .parse::<Uri>()
             .unwrap();
-        assert_eq!(uri.request_uri(), "/foo%2fbar/baz%2Fquux?alt=media");
+        assert_eq!(uri.abs_path(), "/foo%2fbar/baz%2Fquux?alt=media");
     }
 
     #[test]
@@ -761,7 +756,7 @@ mod tests {
             .parse::<Uri>()
             .unwrap();
         assert_eq!(
-            uri.proxy_request_uri(),
+            uri.absolute_uri(),
             "http://rest.rsc.io/foo%2fbar/baz%2Fquux?alt=media"
         );
     }
@@ -769,13 +764,13 @@ mod tests {
     #[test]
     fn origin_t1() {
         let uri = "http://www.example.org/foo.html".parse::<Uri>().unwrap();
-        assert_eq!(uri.origin(), Some("http://www.example.org:80".to_string()));
+        assert_eq!(uri.origin(), Some("http://www.example.org".to_string()));
     }
 
     #[test]
     fn host_port_t1() {
         let uri = "http://www.example.org/foo.html".parse::<Uri>().unwrap();
-        assert_eq!(uri.host_port(), Some("www.example.org:80".to_string()));
+        assert_eq!(uri.host_port(), Some("www.example.org"));
     }
 
     // #[test]
