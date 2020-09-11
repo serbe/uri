@@ -202,18 +202,19 @@ impl Uri {
         result
     }
 
-    pub fn proxy_request_uri(&self) -> Option<String> {
-        let mut result = "/";
+    pub fn proxy_request_uri(&self) -> &str {
+        // let mut result = "/";
 
-        for v in &[self.path, self.query, self.fragment] {
-            if let Some(r) = v {
-                result = &self.inner[r.start..];
-                break;
-            }
-        }
+        // for v in &[self.path, self.query, self.fragment] {
+        //     if let Some(r) = v {
+        //         result = &self.inner[r.start..];
+        //         break;
+        //     }
+        // }
 
-        self.host_port()
-            .map(|hp| format!("{}://{}{}", self.scheme(), hp, result))
+        // self.host_port()
+        //     .map(|hp| format!("{}://{}{}", self.scheme(), hp, result).as_str())
+        &self.inner
     }
 
     pub fn origin(&self) -> Option<String> {
@@ -772,7 +773,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             uri.proxy_request_uri(),
-            Some("http://rest.rsc.io:80/foo%2fbar/baz%2Fquux?alt=media".to_string())
+            "http://rest.rsc.io/foo%2fbar/baz%2Fquux?alt=media"
         );
     }
 
