@@ -34,5 +34,8 @@ fn get_host_with_port() {
     assert_eq!(http.host_with_port(), Some("api.ipify.org:80".to_string()));
 
     let http = "http://api.ipify.org:1245".parse::<Uri>().unwrap();
-    assert_eq!(http.host_with_port(), Some("api.ipify.org:1245".to_string()));
+    assert_eq!(
+        http.host_with_port(),
+        Some("api.ipify.org:1245".to_string())
+    );
 }

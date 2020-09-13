@@ -439,7 +439,9 @@ fn get_authority(s: &str, chunk: &mut RangeUsize) -> Result<Authority> {
         return Ok(Authority::new());
     }
     let mut range = RangeUsize::new(chunk.start + 2, chunk.end);
-    s[range].find('/').map(|pos| range.end(range.start + pos));
+    if let Some(pos) = s[range].find('/') {
+        range.end(range.start + pos)
+    }
     let authority = s[range].parse::<Authority>()?;
     chunk.start(range.end);
     Ok(authority)
