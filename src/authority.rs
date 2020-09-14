@@ -5,7 +5,7 @@ use base64::encode;
 
 use crate::error::{Error, Result};
 use crate::range::RangeUsize;
-use crate::utils::{decode, is_valid_ups};
+use crate::utils::{check_ups, decode};
 
 /// authority = [ userinfo "@" ] host [ ":" port ]
 #[derive(Clone, Debug, PartialEq)]
@@ -85,19 +85,13 @@ impl Authority {
 fn check_username(s: &str) -> Result<()> {
     if s.is_empty() {
         Err(Error::EmptyUsername)
-    } else if is_valid_ups(s, false) {
-        Ok(())
     } else {
-        Err(Error::InvalidUsername(s.to_string()))
+        check_ups(s, false, Error::InvalidUsername(s.to_string()))
     }
 }
 
 fn check_password(s: &str) -> Result<()> {
-    if is_valid_ups(s, true) {
-        Ok(())
-    } else {
-        Err(Error::InvalidPassword(s.to_string()))
-    }
+    check_ups(s, true, Error::InvalidPassword(s.to_string()))
 }
 
 fn check_user_info(s: &str) -> Result<()> {
@@ -164,23 +158,23 @@ fn get_password(s: &str) -> Option<RangeUsize> {
 ///
 fn get_host(s: &str, chunk: &mut RangeUsize) -> Result<RangeUsize> {
     if s[&chunk].is_empty() {
-        Err(Error::EmptyHost)
-    } else {
-        let split_at = if s[&chunk].starts_with('[') && s[&chunk].contains(']') {
-            "]:"
-        } else {
-            ":"
-        };
-        let start = chunk.start;
-        let host = if let Some(pos) = s[&chunk].rfind(split_at) {
-            chunk.start(chunk.start + pos + split_at.len());
-            RangeUsize::new(start, chunk.start - 1)
-        } else {
-            chunk.start(chunk.end);
-            RangeUsize::new(start, chunk.end)
-        };
-        Ok(host)
+        return Err(Error::EmptyHost);
     }
+
+    let split_at = if s[&chunk].starts_with('[') && s[&chunk].contains(']') {
+        "]:"
+    } else {
+        ":"
+    };
+    let start = chunk.start;
+    let host = if let Some(pos) = s[&chunk].rfind(split_at) {
+        chunk.start(chunk.start + pos + split_at.len());
+        RangeUsize::new(start, chunk.start - 1)
+    } else {
+        chunk.start(chunk.end);
+        RangeUsize::new(start, chunk.end)
+    };
+    Ok(host)
 }
 
 impl FromStr for Authority {
@@ -263,14 +257,6 @@ mod tests {
     fn authority_inner() {
         let authority = "user:password@host:80".parse::<Authority>().unwrap();
         assert_eq!(authority.inner, "user:password@host:80".to_string());
-    }
-
-    #[test]
-    fn reserver_char() {
-        let bad_str = "myscheme://authority<\"hi\">/foo";
-        assert!(!is_valid_ups(bad_str, false));
-        let good_str = "myschemeauthority!$&()*:+,;=-._~";
-        assert!(is_valid_ups(good_str, true));
     }
 
     #[test]

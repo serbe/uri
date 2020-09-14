@@ -1,3 +1,5 @@
+use crate::error::{Error, Result};
+
 use percent_encoding::percent_decode_str;
 
 // reserved    = gen-delims / sub-delims
@@ -19,6 +21,13 @@ pub(crate) fn is_valid_ups(input: &str, colon: bool) -> bool {
             || SUB_DELIMS.contains(&ch)
             || additionals.contains(&ch)
     })
+}
+
+pub(crate) fn check_ups(input: &str, colon: bool, err: Error) -> Result<()> {
+    match is_valid_ups(input, colon) {
+        true => Ok(()),
+        false => Err(err),
+    }
 }
 
 /// scheme      = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
@@ -49,5 +58,13 @@ mod tests {
     fn scheme() {
         let s = "asd1209+-.";
         assert!(is_valid_scheme(s));
+    }
+
+    #[test]
+    fn reserver_char() {
+        let bad_str = "myscheme://authority<\"hi\">/foo";
+        assert!(!is_valid_ups(bad_str, false));
+        let good_str = "myschemeauthority!$&()*:+,;=-._~";
+        assert!(is_valid_ups(good_str, true));
     }
 }

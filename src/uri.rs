@@ -59,8 +59,16 @@ impl TryFrom<&Uri> for Uri {
 }
 
 impl Uri {
+    pub fn parse(input: &str) -> Result<Uri> {
+        input.parse()
+    }
+
     pub fn as_str(&self) -> &str {
         &self.inner
+    }
+
+    pub fn into_string(self) -> String {
+        self.inner
     }
 
     pub fn scheme(&self) -> &str {
@@ -298,8 +306,8 @@ impl Uri {
     pub fn set_password(&self, password: &str) -> Result<Uri> {
         let mut uri = self.inner.clone();
         match (self.username, self.password, self.host) {
-            (_, _, None) => return Err(Error::EmptyHost),
-            (None, _, Some(_)) => return Err(Error::EmptyUsername),
+            (_, _, None) => Err(Error::EmptyHost),
+            (None, _, Some(_)) => Err(Error::EmptyUsername),
             (Some(username), None, Some(_)) => {
                 uri.replace_range(
                     Range {
@@ -308,18 +316,18 @@ impl Uri {
                     },
                     password,
                 );
-                uri.replace_range(
+                Ok(uri.replace_range(
                     Range {
                         start: username.start + 1,
                         end: username.start + 1,
                     },
                     ":",
-                )
+                ))
             }
             (Some(_), Some(old_password), Some(_)) => {
-                uri.replace_range(old_password.range(), password)
+                Ok(uri.replace_range(old_password.range(), password))
             }
-        };
+        }?;
         uri.parse()
     }
 }

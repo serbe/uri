@@ -14,7 +14,7 @@ pub enum Addr {
 }
 
 impl Addr {
-    pub fn to_vec(&self) -> Vec<u8> {
+    pub fn to_bytes(&self) -> Vec<u8> {
         match self {
             Addr::Ipv4(ipv4) => ipv4.octets().to_vec(),
             Addr::Ipv6(ipv6) => ipv6.octets().to_vec(),
@@ -35,14 +35,14 @@ impl FromStr for Addr {
     fn from_str(s: &str) -> Result<Self> {
         if s.starts_with('[') {
             if !s.ends_with(']') {
-                return Err(Error::ParseIPv6);
+                Err(Error::ParseIPv6)
+            } else {
+                s[1..s.len() - 1]
+                    .parse::<Ipv6Addr>()
+                    .map(Addr::Ipv6)
+                    .map_err(Error::StdParseAddr)
             }
-            return s[1..s.len() - 1]
-                .parse::<Ipv6Addr>()
-                .map(Addr::Ipv6)
-                .map_err(Error::StdParseAddr);
-        }
-        if let Ok(ipv6) = s.parse::<Ipv6Addr>() {
+        } else if let Ok(ipv6) = s.parse::<Ipv6Addr>() {
             Ok(Addr::Ipv6(ipv6))
         } else if let Ok(ipv4) = s.parse::<Ipv4Addr>() {
             Ok(Addr::Ipv4(ipv4))
