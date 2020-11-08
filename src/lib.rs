@@ -41,7 +41,7 @@ mod utils;
 //       -- if it is identical to the base URI's scheme.
 //       --
 //       if ((not strict) and (R.scheme == Base.scheme)) then
-//          undefine(R.scheme);
+//          undefined(R.scheme);
 //       endif;
 
 //       if defined(R.scheme) then

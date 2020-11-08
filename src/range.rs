@@ -106,20 +106,20 @@ mod tests {
     const RANGE: RangeUsize = RangeUsize { start: 2, end: 4 };
 
     #[test]
-    fn rangeusize_len() {
-        let s = "asdfghjkl;";
-        assert_eq!(&s[RANGE], "df");
+    fn range_usize_len() {
+        let s = "test string;";
+        assert_eq!(&s[RANGE], "st");
         assert_eq!(s[RANGE].len(), RANGE.len());
     }
 
     #[test]
-    fn rangeusize_is_empty() {
+    fn range_usize_is_empty() {
         assert!(RangeUsize::new(2, 2).is_empty());
         assert!(!RANGE.is_empty());
     }
 
     #[test]
-    fn rangeusize_start() {
+    fn range_usize_start() {
         let expected = RangeUsize::new(1, 4);
         let mut input = RANGE;
         input.start(1);
@@ -130,13 +130,13 @@ mod tests {
     }
 
     #[test]
-    fn rangeusize_shift() {
+    fn range_usize_shift() {
         let expected = RangeUsize::new(5, 7);
         assert_eq!(RANGE.shift(3), expected);
     }
 
     #[test]
-    fn rangeusize_end() {
+    fn range_usize_end() {
         let expected = RangeUsize::new(2, 3);
         let mut input = RANGE;
         input.end(3);

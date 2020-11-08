@@ -14,12 +14,12 @@ pub(crate) const SCHEME_ALLOWED_CHARS: [char; 3] = ['+', '-', '.'];
 
 /// userinfo    = *( unreserved / pct-encoded / sub-delims / ":" )
 pub(crate) fn is_valid_ups(input: &str, colon: bool) -> bool {
-    let additionals = if colon { vec![':', '%'] } else { vec!['%'] };
+    let additional = if colon { vec![':', '%'] } else { vec!['%'] };
     input.chars().all(|ch| {
         ch.is_alphanumeric()
             || UNRESERVED.contains(&ch)
             || SUB_DELIMS.contains(&ch)
-            || additionals.contains(&ch)
+            || additional.contains(&ch)
     })
 }
 
@@ -61,7 +61,7 @@ mod tests {
     }
 
     #[test]
-    fn reserver_char() {
+    fn reserved_char() {
         let bad_str = "myscheme://authority<\"hi\">/foo";
         assert!(!is_valid_ups(bad_str, false));
         let good_str = "myschemeauthority!$&()*:+,;=-._~";

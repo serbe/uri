@@ -34,9 +34,9 @@ pub enum Error {
     SocketAddr,
     #[error("Scheme contains {0}")]
     InvalidScheme(String),
-    #[error("Username contains reserver chars (use percent-encoded) {0}")]
+    #[error("Username contains reserved chars (use percent-encoded) {0}")]
     InvalidUsername(String),
-    #[error("Password contains reserver chars (use percent-encoded) {0}")]
+    #[error("Password contains reserved chars (use percent-encoded) {0}")]
     InvalidPassword(String),
 }
 
