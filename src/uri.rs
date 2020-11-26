@@ -311,16 +311,18 @@ impl Uri {
                     },
                     password,
                 );
-                Ok(uri.replace_range(
+                uri.replace_range(
                     Range {
                         start: username.start + 1,
                         end: username.start + 1,
                     },
                     ":",
-                ))
+                );
+                Ok(())
             }
             (Some(_), Some(old_password), Some(_)) => {
-                Ok(uri.replace_range(old_password.range(), password))
+                uri.replace_range(old_password.range(), password);
+                Ok(())
             }
         }?;
         uri.parse()
