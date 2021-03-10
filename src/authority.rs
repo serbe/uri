@@ -112,10 +112,10 @@ fn get_user_info(s: &str, chunk: &mut RangeUsize) -> Option<RangeUsize> {
     })
 }
 
-fn get_username(s: &str) -> Option<RangeUsize> {
+fn get_username(s: &str) -> RangeUsize {
     match s.find(':') {
-        Some(pos) => Some(RangeUsize::new(0, pos)),
-        None => Some(RangeUsize::new(0, s.len())),
+        Some(pos) => RangeUsize::new(0, pos),
+        None => RangeUsize::new(0, s.len()),
     }
 }
 
@@ -190,7 +190,7 @@ impl FromStr for Authority {
         let user_info = get_user_info(s, &mut chunk);
         if let Some(range) = user_info {
             check_user_info(&inner[range])?;
-            username = get_username(&inner[range]);
+            username = Some(get_username(&inner[range]));
             password = get_password(&inner[range]);
         };
         let host = get_host(s, &mut chunk)?;
