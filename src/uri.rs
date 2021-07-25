@@ -29,7 +29,7 @@ impl TryFrom<String> for Uri {
     type Error = Error;
 
     fn try_from(value: String) -> Result<Uri> {
-        Ok(value.parse()?)
+        value.parse()
     }
 }
 
@@ -37,7 +37,7 @@ impl TryFrom<&String> for Uri {
     type Error = Error;
 
     fn try_from(value: &String) -> Result<Uri> {
-        Ok(value.parse()?)
+        value.parse()
     }
 }
 
@@ -45,7 +45,7 @@ impl TryFrom<&str> for Uri {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Uri> {
-        Ok(value.parse()?)
+        value.parse()
     }
 }
 

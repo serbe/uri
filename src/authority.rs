@@ -120,10 +120,7 @@ fn get_username(s: &str) -> RangeUsize {
 }
 
 fn get_password(s: &str) -> Option<RangeUsize> {
-    match s.find(':') {
-        Some(pos) => Some(RangeUsize::new(pos + 1, s.len())),
-        None => None,
-    }
+    s.find(':').map(|pos| RangeUsize::new(pos + 1, s.len()))
 }
 
 /// host = IP-literal / IPv4address / reg-name
