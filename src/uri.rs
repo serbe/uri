@@ -1,3 +1,4 @@
+// use percent_encoding::{percent_encode, AsciiSet, NON_ALPHANUMERIC};
 use std::convert::TryFrom;
 use std::fmt;
 use std::net::{SocketAddr, ToSocketAddrs};
@@ -11,8 +12,16 @@ use crate::error::{Error, Result};
 use crate::range::RangeUsize;
 use crate::utils::{decode, is_valid_scheme};
 
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum Resource {
+    URI,
+    URL,
+    // URN,
+}
+
 #[derive(Clone, PartialEq)]
 pub struct Uri {
+    pub(crate) resource: Resource,
     pub(crate) inner: String,
     pub(crate) scheme: RangeUsize,
     pub(crate) username: Option<RangeUsize>,
@@ -22,7 +31,7 @@ pub struct Uri {
     pub(crate) path: Option<RangeUsize>,
     pub(crate) query: Option<RangeUsize>,
     pub(crate) fragment: Option<RangeUsize>,
-    pub(crate) authority: Authority,
+    pub(crate) authority: Option<Authority>,
 }
 
 impl TryFrom<String> for Uri {
@@ -83,11 +92,7 @@ impl Uri {
     }
 
     pub fn authority(&self) -> Option<Authority> {
-        if self.authority.is_empty() {
-            None
-        } else {
-            Some(self.authority.clone())
-        }
+        self.authority.clone()
     }
 
     pub fn user_info(&self) -> Option<&str> {
@@ -258,12 +263,14 @@ impl Uri {
     }
 
     pub fn has_authority(&self) -> bool {
-        !self.authority.is_empty()
+        self.authority.is_some()
     }
 
     pub fn base64_auth(&self) -> Option<String> {
-        if (self.scheme() == "http" || self.scheme() == "https") && self.has_authority() {
-            self.authority.base64_auth()
+        if self.scheme() == "http" || self.scheme() == "https" {
+            self.authority
+                .as_ref()
+                .and_then(|authority| authority.base64_auth())
         } else {
             None
         }
@@ -327,14 +334,32 @@ impl Uri {
         }?;
         uri.parse()
     }
+
+    pub fn normalize(&self) -> String {
+        let mut uri = self.inner.to_string();
+        if let Some(host_range) = self.host {
+            let normalize_host = self.inner[host_range].to_lowercase();
+            uri.replace_range(host_range.range(), &normalize_host);
+        }
+        if self.is_url() && self.path() == None {
+            uri.push('/');
+        }
+        uri
+    }
+
+    pub fn is_url(&self) -> bool {
+        self.resource == Resource::URL
+    }
 }
 
 impl fmt::Display for Uri {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut uri = self.inner.to_string();
-        let auth = self.authority.to_string();
-        let start = self.scheme.end + 3;
-        uri.replace_range(start..(start + auth.len()), &auth);
+        if let Some(authority) = &self.authority {
+            let auth = authority.to_string();
+            let start = self.scheme.end + 3;
+            uri.replace_range(start..(start + auth.len()), &auth);
+        }
         write!(f, "{}", uri)
     }
 }
@@ -342,9 +367,11 @@ impl fmt::Display for Uri {
 impl fmt::Debug for Uri {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut uri = self.inner.to_string();
-        let auth = self.authority.to_string();
-        let start = self.scheme.end + 3;
-        uri.replace_range(start..(start + auth.len()), &auth);
+        if let Some(authority) = &self.authority {
+            let auth = authority.to_string();
+            let start = self.scheme.end + 3;
+            uri.replace_range(start..(start + auth.len()), &auth);
+        }
         write!(f, "{}", uri)
     }
 }
@@ -355,30 +382,43 @@ impl FromStr for Uri {
     fn from_str(s: &str) -> Result<Self> {
         let mut inner = s.to_string();
         let mut chunk = RangeUsize::new(0, s.len());
+        let mut username = None;
+        let mut password = None;
+        let mut host = None;
+        let mut port = None;
 
         let scheme = get_scheme(s, &mut chunk)?;
         let lower_scheme = &s[scheme].to_lowercase();
         inner.replace_range(scheme.range(), lower_scheme);
 
         let fragment = get_fragment(s, &mut chunk);
+        // dbg!(&fragment);
 
         let query = get_query(s, &mut chunk);
+        // dbg!(&query);
 
         let authority = get_authority(s, &mut chunk)?;
-        let shift = scheme.len() + 3;
+        // dbg!(&authority);
 
-        let username = authority.username.map(|username| username.shift(shift));
-        let password = authority.password.map(|password| password.shift(shift));
-        let host = if authority.is_empty() {
-            None
+        let resource = if &inner[RangeUsize::new(scheme.len() + 1, scheme.len() + 3)] == "//" {
+            let shift = scheme.len() + 3;
+            if let Some(auth) = &authority {
+                username = auth.username.map(|username| username.shift(shift));
+                password = auth.password.map(|password| password.shift(shift));
+                host = Some(auth.host.shift(shift));
+                port = auth.port;
+            }
+            Resource::URL
         } else {
-            Some(authority.host.shift(shift))
+            Resource::URI
         };
-        let port = authority.port;
+        // dbg!(&resource);
 
-        let path = get_path(s, &mut chunk);
+        let path = if chunk.is_empty() { None } else { Some(chunk) };
+        // dbg!(&path);
 
         Ok(Uri {
+            resource,
             inner,
             scheme,
             username,
@@ -439,9 +479,9 @@ fn get_query(s: &str, chunk: &mut RangeUsize) -> Option<RangeUsize> {
 }
 
 /// authority = [ userinfo "@" ] host [ ":" port ]
-fn get_authority(s: &str, chunk: &mut RangeUsize) -> Result<Authority> {
+fn get_authority(s: &str, chunk: &mut RangeUsize) -> Result<Option<Authority>> {
     if !s[&chunk].starts_with("//") {
-        return Ok(Authority::new());
+        return Ok(None);
     }
     let mut range = RangeUsize::new(chunk.start + 2, chunk.end);
     if let Some(pos) = s[range].find('/') {
@@ -449,14 +489,14 @@ fn get_authority(s: &str, chunk: &mut RangeUsize) -> Result<Authority> {
     }
     let authority = s[range].parse::<Authority>()?;
     chunk.start(range.end);
-    Ok(authority)
+    Ok(Some(authority))
 }
 
-fn get_path(s: &str, chunk: &mut RangeUsize) -> Option<RangeUsize> {
-    s[&chunk]
-        .find('/')
-        .map(|pos| RangeUsize::new(chunk.start + pos, chunk.end))
-}
+// fn get_path(s: &str, chunk: &mut RangeUsize) -> Option<RangeUsize> {
+//     s[&chunk]
+//         .find('/')
+//         .map(|pos| RangeUsize::new(chunk.start + pos, chunk.end))
+// }
 
 #[cfg(test)]
 mod tests {
