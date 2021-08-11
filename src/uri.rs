@@ -14,8 +14,8 @@ use crate::utils::{decode, is_valid_scheme};
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Resource {
-    URI,
-    URL,
+    Uri,
+    Url,
     // URN,
 }
 
@@ -348,7 +348,7 @@ impl Uri {
     }
 
     pub fn is_url(&self) -> bool {
-        self.resource == Resource::URL
+        self.resource == Resource::Url
     }
 }
 
@@ -408,9 +408,9 @@ impl FromStr for Uri {
                 host = Some(auth.host.shift(shift));
                 port = auth.port;
             }
-            Resource::URL
+            Resource::Url
         } else {
-            Resource::URI
+            Resource::Uri
         };
         // dbg!(&resource);
 
