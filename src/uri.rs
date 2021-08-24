@@ -1,16 +1,21 @@
 // use percent_encoding::{percent_encode, AsciiSet, NON_ALPHANUMERIC};
-use std::convert::TryFrom;
-use std::fmt;
-use std::net::{SocketAddr, ToSocketAddrs};
-use std::ops::Range;
-use std::str;
-use std::str::FromStr;
-use std::string::ToString;
+use std::{
+    convert::TryFrom,
+    fmt,
+    net::{SocketAddr, ToSocketAddrs},
+    ops::Range,
+    str,
+    str::FromStr,
+    string::ToString,
+};
 
-use crate::authority::Authority;
-use crate::error::{Error, Result};
-use crate::range::RangeUsize;
-use crate::utils::{decode, is_valid_scheme};
+use crate::{
+    addr::Addr,
+    authority::Authority,
+    error::Error,
+    range::RangeUsize,
+    utils::{decode, is_valid_scheme},
+};
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Resource {
@@ -37,7 +42,7 @@ pub struct Uri {
 impl TryFrom<String> for Uri {
     type Error = Error;
 
-    fn try_from(value: String) -> Result<Uri> {
+    fn try_from(value: String) -> Result<Uri, Error> {
         value.parse()
     }
 }
@@ -45,7 +50,7 @@ impl TryFrom<String> for Uri {
 impl TryFrom<&String> for Uri {
     type Error = Error;
 
-    fn try_from(value: &String) -> Result<Uri> {
+    fn try_from(value: &String) -> Result<Uri, Error> {
         value.parse()
     }
 }
@@ -53,7 +58,7 @@ impl TryFrom<&String> for Uri {
 impl TryFrom<&str> for Uri {
     type Error = Error;
 
-    fn try_from(value: &str) -> Result<Uri> {
+    fn try_from(value: &str) -> Result<Uri, Error> {
         value.parse()
     }
 }
@@ -61,13 +66,13 @@ impl TryFrom<&str> for Uri {
 impl TryFrom<&Uri> for Uri {
     type Error = Error;
 
-    fn try_from(value: &Uri) -> Result<Uri> {
+    fn try_from(value: &Uri) -> Result<Uri, Error> {
         Ok(value.clone())
     }
 }
 
 impl Uri {
-    pub fn parse(input: &str) -> Result<Uri> {
+    pub fn parse(input: &str) -> Result<Uri, Error> {
         input.parse()
     }
 
@@ -244,7 +249,7 @@ impl Uri {
         }
     }
 
-    pub fn socket_addrs(&self) -> Result<Vec<SocketAddr>> {
+    pub fn socket_addrs(&self) -> Result<Vec<SocketAddr>, Error> {
         Ok(self
             .host_with_port()
             .ok_or(Error::EmptyHost)
@@ -252,7 +257,7 @@ impl Uri {
             .collect())
     }
 
-    pub fn socket_addr(&self) -> Result<SocketAddr> {
+    pub fn socket_addr(&self) -> Result<SocketAddr, Error> {
         self.socket_addrs()?
             .pop()
             .map_or(Err(Error::SocketAddr), Ok)
@@ -276,11 +281,11 @@ impl Uri {
         }
     }
 
-    pub fn set_authority(&self, username: &str, password: &str) -> Result<Uri> {
+    pub fn set_authority(&self, username: &str, password: &str) -> Result<Uri, Error> {
         self.set_username(username)?.set_password(password)
     }
 
-    pub fn set_username(&self, username: &str) -> Result<Uri> {
+    pub fn set_username(&self, username: &str) -> Result<Uri, Error> {
         let mut uri = self.inner.clone();
         match (self.username, self.host) {
             (_, None) => return Err(Error::EmptyHost),
@@ -305,7 +310,7 @@ impl Uri {
         uri.parse()
     }
 
-    pub fn set_password(&self, password: &str) -> Result<Uri> {
+    pub fn set_password(&self, password: &str) -> Result<Uri, Error> {
         let mut uri = self.inner.clone();
         match (self.username, self.password, self.host) {
             (_, _, None) => Err(Error::EmptyHost),
@@ -350,6 +355,10 @@ impl Uri {
     pub fn is_url(&self) -> bool {
         self.resource == Resource::Url
     }
+
+    pub fn addr(&self) -> Result<Addr, Error> {
+        self.host_port().ok_or(Error::EmptyHostPort)?.parse()
+    }
 }
 
 impl fmt::Display for Uri {
@@ -379,7 +388,7 @@ impl fmt::Debug for Uri {
 impl FromStr for Uri {
     type Err = Error;
 
-    fn from_str(s: &str) -> Result<Self> {
+    fn from_str(s: &str) -> Result<Self, Error> {
         let mut inner = s.to_string();
         let mut chunk = RangeUsize::new(0, s.len());
         let mut username = None;
@@ -434,7 +443,7 @@ impl FromStr for Uri {
 }
 
 /// scheme = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
-fn check_scheme(scheme: &str) -> Result<()> {
+fn check_scheme(scheme: &str) -> Result<(), Error> {
     if scheme.is_empty() {
         Err(Error::EmptyScheme)
     } else if is_valid_scheme(scheme) {
@@ -444,7 +453,7 @@ fn check_scheme(scheme: &str) -> Result<()> {
     }
 }
 
-fn get_scheme(s: &str, chunk: &mut RangeUsize) -> Result<RangeUsize> {
+fn get_scheme(s: &str, chunk: &mut RangeUsize) -> Result<RangeUsize, Error> {
     match s.find(':') {
         Some(pos) => {
             let scheme = RangeUsize::new(0, pos);
@@ -479,7 +488,7 @@ fn get_query(s: &str, chunk: &mut RangeUsize) -> Option<RangeUsize> {
 }
 
 /// authority = [ userinfo "@" ] host [ ":" port ]
-fn get_authority(s: &str, chunk: &mut RangeUsize) -> Result<Option<Authority>> {
+fn get_authority(s: &str, chunk: &mut RangeUsize) -> Result<Option<Authority>, Error> {
     if !s[&chunk].starts_with("//") {
         return Ok(None);
     }

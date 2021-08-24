@@ -1,17 +1,11 @@
-use std::{io, net, result, string};
-
-use thiserror::Error;
-
-pub type Result<T> = result::Result<T, Error>;
-
-#[derive(Error, Debug)]
+#[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("io error")]
-    IO(#[from] io::Error),
+    IO(#[from] std::io::Error),
     #[error("string from utf8 error")]
-    Utf8Error(#[from] string::FromUtf8Error),
+    Utf8Error(#[from] std::string::FromUtf8Error),
     #[error("Net address parse")]
-    StdParseAddr(#[from] net::AddrParseError),
+    StdParseAddr(#[from] std::net::AddrParseError),
     #[error("Parse ip version 6")]
     ParseIPv6,
     #[error("Parse address: {0}")]
@@ -24,6 +18,8 @@ pub enum Error {
     EmptyScheme,
     #[error("Empty userinfo before @")]
     EmptyUserInfo,
+    #[error("Empty host_port")]
+    EmptyHostPort,
     #[error("Empty host in authority")]
     EmptyHost,
     #[error("Empty authority")]

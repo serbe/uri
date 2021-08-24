@@ -1,11 +1,12 @@
-use std::fmt;
-use std::str::FromStr;
+use std::{fmt, str::FromStr};
 
 use base64::encode;
 
-use crate::error::{Error, Result};
-use crate::range::RangeUsize;
-use crate::utils::{check_ups, decode};
+use crate::{
+    error::Error,
+    range::RangeUsize,
+    utils::{check_ups, decode},
+};
 
 /// authority = [ userinfo "@" ] host [ ":" port ]
 #[derive(Clone, Debug, PartialEq)]
@@ -82,7 +83,7 @@ impl Authority {
     }
 }
 
-fn check_username(s: &str) -> Result<()> {
+fn check_username(s: &str) -> Result<(), Error> {
     if s.is_empty() {
         Err(Error::EmptyUsername)
     } else {
@@ -90,11 +91,11 @@ fn check_username(s: &str) -> Result<()> {
     }
 }
 
-fn check_password(s: &str) -> Result<()> {
+fn check_password(s: &str) -> Result<(), Error> {
     check_ups(s, true, Error::InvalidPassword(s.to_string()))
 }
 
-fn check_user_info(s: &str) -> Result<()> {
+fn check_user_info(s: &str) -> Result<(), Error> {
     if s.is_empty() {
         Err(Error::EmptyUserInfo)
     } else if let Some(colon_pos) = s.find(':') {
@@ -153,7 +154,7 @@ fn get_password(s: &str) -> Option<RangeUsize> {
 ///
 ///  reg-name    = *( unreserved / pct-encoded / sub-delims )
 ///
-fn get_host(s: &str, chunk: &mut RangeUsize) -> Result<RangeUsize> {
+fn get_host(s: &str, chunk: &mut RangeUsize) -> Result<RangeUsize, Error> {
     if s[&chunk].is_empty() {
         return Err(Error::EmptyHost);
     }
@@ -177,7 +178,7 @@ fn get_host(s: &str, chunk: &mut RangeUsize) -> Result<RangeUsize> {
 impl FromStr for Authority {
     type Err = Error;
 
-    fn from_str(s: &str) -> Result<Self> {
+    fn from_str(s: &str) -> Result<Self, Error> {
         let inner = s.to_string();
 
         let mut chunk = RangeUsize::new(0, s.len());

@@ -8,11 +8,9 @@
  *
  */
 
-pub use crate::uri::Uri;
-pub use authority::Authority;
-pub use error::{Error, Result};
-pub use range::RangeUsize;
+pub use {authority::Authority, error::Error, range::RangeUsize, uri::Uri};
 
+mod addr;
 mod authority;
 mod error;
 mod range;

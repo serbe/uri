@@ -1,4 +1,4 @@
-use crate::error::{Error, Result};
+use crate::error::Error;
 
 use percent_encoding::percent_decode_str;
 
@@ -23,7 +23,7 @@ pub(crate) fn is_valid_ups(input: &str, colon: bool) -> bool {
     })
 }
 
-pub(crate) fn check_ups(input: &str, colon: bool, err: Error) -> Result<()> {
+pub(crate) fn check_ups(input: &str, colon: bool, err: Error) -> Result<(), Error> {
     match is_valid_ups(input, colon) {
         true => Ok(()),
         false => Err(err),

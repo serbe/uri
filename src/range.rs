@@ -1,5 +1,7 @@
-use std::cmp::{max, min};
-use std::ops::{Add, Index, Range, RangeFrom, RangeTo};
+use std::{
+    cmp::{max, min},
+    ops::{Add, Index, Range, RangeFrom, RangeTo},
+};
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct RangeUsize {
