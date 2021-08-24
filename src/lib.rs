@@ -8,11 +8,14 @@
  *
  */
 
-pub use {addr::Addr, authority::Authority, error::Error, range::RangeUsize, uri::Uri};
+pub use {
+    addr::Addr, authority::Authority, error::Error, into_uri::IntoUri, range::RangeUsize, uri::Uri,
+};
 
 mod addr;
 mod authority;
 mod error;
+mod into_uri;
 mod range;
 mod uri;
 mod utils;
