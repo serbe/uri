@@ -8,7 +8,7 @@
  *
  */
 
-pub use {authority::Authority, error::Error, range::RangeUsize, uri::Uri};
+pub use {addr::Addr, authority::Authority, error::Error, range::RangeUsize, uri::Uri};
 
 mod addr;
 mod authority;
