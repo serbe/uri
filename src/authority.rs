@@ -324,4 +324,17 @@ mod tests {
         assert_eq!(&host[expected], host);
         assert_eq!(range, expected_range);
     }
+
+    #[test]
+    fn get_host_ipv6_v2() {
+        let host = "[hostname]";
+        let mut range = RangeUsize::new(0, 10);
+        assert_eq!(&host[range], host);
+        assert!(host[range].starts_with('[') && host[range].contains(']'));
+        let expected = RangeUsize::new(0, 10);
+        let expected_range = RangeUsize::new(10, 10);
+        assert_eq!(get_host(host, &mut range), Ok(expected));
+        assert_eq!(&host[expected], host);
+        assert_eq!(range, expected_range);
+    }
 }

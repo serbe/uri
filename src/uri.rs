@@ -587,8 +587,20 @@ mod tests {
     }
 
     #[test]
+    fn host_t4_1() {
+        let uri = "http://192.168.0.1/".parse::<Uri>().unwrap();
+        assert_eq!(uri.host(), Some("192.168.0.1"));
+    }
+
+    #[test]
     fn host_t5() {
         let uri = "http://[fe80::1]:8080/".parse::<Uri>().unwrap();
+        assert_eq!(uri.host(), Some("[fe80::1]"));
+    }
+
+    #[test]
+    fn host_t5_1() {
+        let uri = "http://[fe80::1]/".parse::<Uri>().unwrap();
         assert_eq!(uri.host(), Some("[fe80::1]"));
     }
 
