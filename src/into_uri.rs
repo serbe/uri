@@ -14,7 +14,7 @@ impl IntoUri for Uri {
     }
 }
 
-impl<'a> IntoUri for &'a Uri {
+impl IntoUri for &Uri {
     fn into_uri(self) -> Result<Uri, Error> {
         if self.has_authority() {
             Ok(self.clone())
