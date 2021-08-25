@@ -14,6 +14,16 @@ impl IntoUri for Uri {
     }
 }
 
+impl<'a> IntoUri for &'a Uri {
+    fn into_uri(self) -> Result<Uri, Error> {
+        if self.has_authority() {
+            Ok(self.clone())
+        } else {
+            Err(Error::EmptyAuthority)
+        }
+    }
+}
+
 impl<'a> IntoUri for &'a str {
     fn into_uri(self) -> Result<Uri, Error> {
         Uri::parse(self)?.into_uri()
