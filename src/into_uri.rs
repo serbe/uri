@@ -14,6 +14,12 @@ impl IntoUri for Uri {
     }
 }
 
+impl<'a> IntoUri for &'a Uri {
+    fn into_uri(self) -> Result<Uri, Error> {
+        self.clone().into_uri()
+    }
+}
+
 impl<'a> IntoUri for &'a str {
     fn into_uri(self) -> Result<Uri, Error> {
         Uri::parse(self)?.into_uri()
