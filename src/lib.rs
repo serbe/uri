@@ -13,13 +13,13 @@ pub use {
     range::RangeUsize,
 };
 
-mod addr;
-mod authority;
-mod error;
-mod into_uri;
-mod range;
-mod uri;
-mod utils;
+pub mod addr;
+pub mod authority;
+pub mod error;
+pub mod into_uri;
+pub mod range;
+pub mod uri;
+pub mod utils;
 
 // pct-encoded = "%" HEXDIG HEXDIG
 
