@@ -1,19 +1,10 @@
 use crate::{error::Error, uri::Uri};
 
-pub trait IntoUri: IntoUriSealed {}
-
-impl IntoUri for Uri {}
-impl IntoUri for String {}
-impl<'a> IntoUri for &'a str {}
-impl<'a> IntoUri for &'a String {}
-
-pub trait IntoUriSealed {
+pub trait IntoUri {
     fn into_uri(self) -> Result<Uri, Error>;
-
-    fn as_str(&self) -> &str;
 }
 
-impl IntoUriSealed for Uri {
+impl IntoUri for Uri {
     fn into_uri(self) -> Result<Uri, Error> {
         if self.has_authority() {
             Ok(self)
@@ -21,39 +12,23 @@ impl IntoUriSealed for Uri {
             Err(Error::EmptyAuthority)
         }
     }
-
-    fn as_str(&self) -> &str {
-        self.as_str()
-    }
 }
 
-impl<'a> IntoUriSealed for &'a str {
+impl<'a> IntoUri for &'a str {
     fn into_uri(self) -> Result<Uri, Error> {
         Uri::parse(self)?.into_uri()
     }
-
-    fn as_str(&self) -> &str {
-        self
-    }
 }
 
-impl<'a> IntoUriSealed for &'a String {
+impl<'a> IntoUri for &'a String {
     fn into_uri(self) -> Result<Uri, Error> {
         (&**self).into_uri()
     }
-
-    fn as_str(&self) -> &str {
-        self.as_ref()
-    }
 }
 
-impl<'a> IntoUriSealed for String {
+impl<'a> IntoUri for String {
     fn into_uri(self) -> Result<Uri, Error> {
         (&*self).into_uri()
-    }
-
-    fn as_str(&self) -> &str {
-        self.as_ref()
     }
 }
 
@@ -63,7 +38,7 @@ mod tests {
 
     #[test]
     fn into_uri_file_scheme() {
-        let result = "file:///etc/fstab".into_uri();
+        let result = "file:///abd/cef".into_uri();
         assert!(result.is_err());
     }
 }

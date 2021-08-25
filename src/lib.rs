@@ -9,7 +9,8 @@
  */
 
 pub use {
-    addr::Addr, authority::Authority, error::Error, into_uri::IntoUri, range::RangeUsize, uri::Uri,
+    crate::uri::Uri, addr::Addr, authority::Authority, error::Error, into_uri::IntoUri,
+    range::RangeUsize,
 };
 
 mod addr;
