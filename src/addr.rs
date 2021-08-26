@@ -59,7 +59,7 @@ impl<'a> FromStr for Addr<'a> {
     fn from_str(s: &str) -> Result<Self, Error> {
         let rsplit: Vec<String> = s.rsplitn(2, ':').map(|x| x.to_string()).collect();
         if rsplit.len() != 2 {
-            return Err(Error::ParseHost);
+            return Err(Error::ParseHost(s.to_string()));
         }
         let (host, port) = (rsplit[1].clone(), rsplit[0].clone());
         let port = port.parse::<u16>().map_err(|_| Error::ParsePort(port))?;
