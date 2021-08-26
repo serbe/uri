@@ -359,7 +359,7 @@ impl Uri {
     }
 
     pub fn addr(&self) -> Result<Addr, Error> {
-        self.host_port().ok_or(Error::EmptyHostPort)?.parse()
+        self.host_with_port().ok_or(Error::EmptyHostPort)?.parse()
     }
 }
 
