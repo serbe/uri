@@ -109,11 +109,11 @@ impl Uri {
     }
 
     pub fn decode_username(&self) -> Option<String> {
-        self.username().and_then(|username| decode(username))
+        self.username().and_then(decode)
     }
 
     pub fn decode_password(&self) -> Option<String> {
-        self.password().and_then(|password| decode(password))
+        self.password().and_then(decode)
     }
 
     pub fn host(&self) -> Option<&str> {
@@ -195,7 +195,7 @@ impl Uri {
     }
 
     pub fn decode_path(&self) -> Option<String> {
-        self.path().and_then(|path| decode(path))
+        self.path().and_then(decode)
     }
 
     pub fn query(&self) -> Option<&str> {

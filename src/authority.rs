@@ -44,7 +44,7 @@ impl Authority {
     }
 
     pub fn decode_username(&self) -> Option<String> {
-        self.username().and_then(|username| decode(username))
+        self.username().and_then(decode)
     }
 
     pub fn password(&self) -> Option<&str> {
@@ -52,7 +52,7 @@ impl Authority {
     }
 
     pub fn decode_password(&self) -> Option<String> {
-        self.password().and_then(|password| decode(password))
+        self.password().and_then(decode)
     }
 
     pub fn user_info(&self) -> Option<&str> {
