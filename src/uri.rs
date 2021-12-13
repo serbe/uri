@@ -362,6 +362,14 @@ impl Uri {
     pub fn addr(&self) -> Result<Addr, Error> {
         self.host_with_port().ok_or(Error::EmptyHostPort)?.parse()
     }
+
+    pub fn request_uri(&self, proxy: bool) -> String {
+        if proxy {
+            self.absolute_uri()
+        } else {
+            self.abs_path().to_string()
+        }
+    }
 }
 
 impl fmt::Display for Uri {
