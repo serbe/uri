@@ -261,7 +261,8 @@ impl Uri {
 
     pub fn socket_addr(&self) -> Result<SocketAddr, Error> {
         self.socket_addrs()?
-            .pop()
+            .first()
+            .cloned()
             .map_or(Err(Error::SocketAddr), Ok)
     }
 
