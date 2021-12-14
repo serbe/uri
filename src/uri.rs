@@ -42,7 +42,7 @@ pub struct Uri {
 impl TryFrom<String> for Uri {
     type Error = Error;
 
-    fn try_from(value: String) -> Result<Uri, Error> {
+    fn try_from(value: String) -> Result<Self, Self::Error> {
         value.parse()
     }
 }
@@ -50,7 +50,7 @@ impl TryFrom<String> for Uri {
 impl TryFrom<&String> for Uri {
     type Error = Error;
 
-    fn try_from(value: &String) -> Result<Uri, Error> {
+    fn try_from(value: &String) -> Result<Self, Self::Error> {
         value.parse()
     }
 }
@@ -58,7 +58,7 @@ impl TryFrom<&String> for Uri {
 impl TryFrom<&str> for Uri {
     type Error = Error;
 
-    fn try_from(value: &str) -> Result<Uri, Error> {
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
         value.parse()
     }
 }
@@ -66,7 +66,7 @@ impl TryFrom<&str> for Uri {
 impl TryFrom<&Uri> for Uri {
     type Error = Error;
 
-    fn try_from(value: &Uri) -> Result<Uri, Error> {
+    fn try_from(value: &Uri) -> Result<Self, Self::Error> {
         Ok(value.clone())
     }
 }
@@ -399,7 +399,7 @@ impl fmt::Debug for Uri {
 impl FromStr for Uri {
     type Err = Error;
 
-    fn from_str(s: &str) -> Result<Self, Error> {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut inner = s.to_string();
         let mut chunk = RangeUsize::new(0, s.len());
         let mut username = None;
