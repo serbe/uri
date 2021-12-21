@@ -5,6 +5,7 @@ use percent_encoding::percent_decode_str;
 // reserved    = gen-delims / sub-delims
 // gen-delims  = ":" / "/" / "?" / "#" / "[" / "]" / "@"
 // sub-delims  = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "="
+
 // unreserved  = ALPHA / DIGIT / "-" / "." / "_" / "~"
 
 // pub const GEN_DELIMS: [char; 7] = [':', '/', '?', '#', '[', ']', '@'];

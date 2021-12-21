@@ -5,8 +5,7 @@
  *
  * https://tools.ietf.org/html/rfc3986
  * https://www.protocols.ru/WP/rfc3986
- *
- */
+  */
 
 pub use {
     crate::uri::Uri, addr::Addr, authority::Authority, error::Error, into_uri::IntoUri,
@@ -17,7 +16,9 @@ pub mod addr;
 pub mod authority;
 pub mod error;
 pub mod into_uri;
+pub mod parser;
 pub mod range;
+// pub mod scheme;
 pub mod uri;
 pub mod utils;
 
@@ -26,9 +27,21 @@ pub mod utils;
 // reserved    = gen-delims / sub-delims
 // gen-delims  = ":" / "/" / "?" / "#" / "[" / "]" / "@"
 // sub-delims  = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "="
+
 // unreserved  = ALPHA / DIGIT / "-" / "." / "_" / "~"
 
+// URI         = scheme ":" hier-part [ "?" query ] [ "#" fragment ]
+
+//      hier-part   = "//" authority path-abempty
+//                  / path-absolute
+//                  / path-rootless
+//                  / path-empty
+
 // scheme      = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
+// authority   = [ userinfo "@" ] host [ ":" port ]
+// host        = IP-literal / IPv4address / reg-name
+// IP-literal  = "[" ( IPv6address / IPvFuture  ) "]"
+// IPvFuture   = "v" 1*HEXDIG "." 1*( unreserved / sub-delims / ":" )
 // userinfo    = *( unreserved / pct-encoded / sub-delims / ":" )
 
 //
