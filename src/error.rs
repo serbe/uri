@@ -34,6 +34,8 @@ pub enum Error {
     InvalidUsername(String),
     #[error("Password contains reserved chars (use percent-encoded) {0}")]
     InvalidPassword(String),
+    #[error("No convert into uri")]
+    IntoUri,
 }
 
 impl PartialEq for Error {
@@ -65,6 +67,7 @@ impl PartialEq for Error {
             (Error::InvalidPassword(self_err), Error::InvalidPassword(other_err)) => {
                 self_err == other_err
             }
+            (Error::IntoUri, Error::IntoUri) => true,
             _ => false,
         }
     }
