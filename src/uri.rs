@@ -8,13 +8,7 @@ use std::{
     string::ToString,
 };
 
-use crate::{
-    addr::Addr,
-    authority::Authority,
-    error::Error,
-    range::RangeUsize,
-    utils::{decode},
-};
+use crate::{addr::Addr, authority::Authority, error::Error, range::RangeUsize, utils::decode};
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Resource {

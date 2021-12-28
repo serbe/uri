@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use crate::{Uri, RangeUsize, Error, utils::is_valid_scheme, Authority, uri::Resource};
+use crate::{uri::Resource, utils::is_valid_scheme, Authority, Error, RangeUsize, Uri};
 
 impl FromStr for Uri {
     type Err = Error;

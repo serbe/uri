@@ -5,7 +5,7 @@
  *
  * https://tools.ietf.org/html/rfc3986
  * https://www.protocols.ru/WP/rfc3986
-  */
+ */
 
 pub use {
     crate::uri::Uri, addr::Addr, authority::Authority, error::Error, into_uri::IntoUri,
