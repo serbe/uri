@@ -1,10 +1,12 @@
 [package]
-authors = ["mkoctuk <mkoctuk@gmail.com>"]
+authors = ["serbe <serbenv@gmail.com>"]
+description = "Rust implementation of the Uniform Resource Identifier (URI)"
 edition = "2021"
 name = "uri"
-version = "0.4.12"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+version = "0.4.13"
+readme = "README.md"
+repository = "https://github.com/serbe/uri/"
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 base64 = "0.13"
