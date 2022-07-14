@@ -32,7 +32,7 @@ impl<'a> IntoUri for &'a String {
     }
 }
 
-impl<'a> IntoUri for String {
+impl IntoUri for String {
     fn into_uri(self) -> Result<Uri, Error> {
         (&*self).into_uri()
     }
