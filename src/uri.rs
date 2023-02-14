@@ -121,7 +121,7 @@ impl Uri {
         match (self.host, self.port) {
             (Some(host), Some(port)) if Some(port) == self.default_port() => &self.inner[host],
             (Some(host), Some(port)) => {
-                &self.inner[host.start..host.end + format!("{}", port).len() + 1]
+                &self.inner[host.start..host.end + format!("{port}").len() + 1]
             }
             (Some(host), None) => &self.inner[host],
             _ => "",
@@ -223,7 +223,7 @@ impl Uri {
     pub fn host_port(&self) -> Option<&str> {
         match (self.host, self.port) {
             (Some(host), Some(port)) => {
-                Some(&self.inner[host.start..host.end + format!("{}", port).len() + 1])
+                Some(&self.inner[host.start..host.end + format!("{port}").len() + 1])
             }
             (Some(host), None) => Some(&self.inner[host]),
             _ => None,
@@ -233,7 +233,7 @@ impl Uri {
     pub fn host_with_port(&self) -> Option<String> {
         match (self.host, self.port) {
             (Some(host), Some(port)) => {
-                Some(self.inner[host.start..host.end + format!("{}", port).len() + 1].to_string())
+                Some(self.inner[host.start..host.end + format!("{port}").len() + 1].to_string())
             }
             (Some(host), None) => Some(format!(
                 "{}:{}",
@@ -342,7 +342,7 @@ impl Uri {
             let normalize_host = self.inner[host_range].to_lowercase();
             uri.replace_range(host_range.range(), &normalize_host);
         }
-        if self.is_url() && self.path() == None {
+        if self.is_url() && self.path().is_none() {
             uri.push('/');
         }
         uri
@@ -373,7 +373,7 @@ impl fmt::Display for Uri {
             let start = self.scheme.end + 3;
             uri.replace_range(start..(start + auth.len()), &auth);
         }
-        write!(f, "{}", uri)
+        write!(f, "{uri}")
     }
 }
 
@@ -385,6 +385,6 @@ impl fmt::Debug for Uri {
             let start = self.scheme.end + 3;
             uri.replace_range(start..(start + auth.len()), &auth);
         }
-        write!(f, "{}", uri)
+        write!(f, "{uri}")
     }
 }

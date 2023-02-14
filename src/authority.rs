@@ -1,6 +1,6 @@
 use std::{fmt, str::FromStr};
 
-use base64::encode;
+use base64::{engine::general_purpose::STANDARD, Engine};
 
 use crate::{
     error::Error,
@@ -73,7 +73,7 @@ impl Authority {
 
     pub fn base64_auth(&self) -> Option<String> {
         match (self.decode_username(), self.decode_password()) {
-            (Some(user), Some(pass)) => Some(encode(&format!("{}:{}", user, pass))),
+            (Some(user), Some(pass)) => Some(STANDARD.encode(format!("{user}:{pass}"))),
             _ => None,
         }
     }
@@ -222,7 +222,7 @@ impl fmt::Display for Authority {
             self.inner.clone()
         };
 
-        write!(f, "{}", auth)
+        write!(f, "{auth}")
     }
 }
 
