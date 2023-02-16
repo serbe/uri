@@ -18,13 +18,8 @@ impl FromStr for Uri {
         inner.replace_range(scheme.range(), lower_scheme);
 
         let fragment = get_fragment(s, &mut chunk);
-        // dbg!(&fragment);
-
         let query = get_query(s, &mut chunk);
-        // dbg!(&query);
-
         let authority = get_authority(s, &mut chunk)?;
-        // dbg!(&authority);
 
         let resource = if &inner[RangeUsize::new(scheme.len() + 1, scheme.len() + 3)] == "//" {
             let shift = scheme.len() + 3;
@@ -38,10 +33,8 @@ impl FromStr for Uri {
         } else {
             Resource::Uri
         };
-        // dbg!(&resource);
 
         let path = if chunk.is_empty() { None } else { Some(chunk) };
-        // dbg!(&path);
 
         Ok(Uri {
             resource,

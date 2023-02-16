@@ -10,19 +10,19 @@ fn parse_ipv4() {
     assert!(http.parse::<Uri>().is_ok());
 }
 
-// #[test]
-// fn domain_addr() {
-//     let http = "http://api.ipify.org".parse::<Uri>().unwrap();
-//     assert_eq!(http.host(), Some("api.ipify.org"));
-//     assert!(http.addr().is_ok());
-// }
+#[test]
+fn domain_addr() {
+    let http = "http://api.ipify.org".parse::<Uri>().unwrap();
+    assert_eq!(http.host(), Some("api.ipify.org"));
+    assert!(http.addr().is_ok());
+}
 
-// #[test]
-// fn ipv4_addr() {
-//     let socks = "socks5://127.0.0.1:5959".parse::<Uri>().unwrap();
-//     assert_eq!(socks.host(), Some("127.0.0.1"));
-//     assert!(socks.addr().is_ok());
-// }
+#[test]
+fn ipv4_addr() {
+    let socks = "socks5://127.0.0.1:5959".parse::<Uri>().unwrap();
+    assert_eq!(socks.host(), Some("127.0.0.1"));
+    assert!(socks.addr().is_ok());
+}
 
 #[test]
 fn get_host_str() {
@@ -385,11 +385,11 @@ fn host_port_t1() {
     assert_eq!(uri.host_port(), Some("www.example.org"));
 }
 
-// #[test]
-// fn addr_port_t1() {
-//     let uri = "http://www.example.org/foo.html".parse::<Uri>().unwrap();
-//     assert_eq!(uri.addr_port(), vec![0u8, 80u8]);
-// }
+#[test]
+fn addr_port_t1() {
+    let uri = "http://www.example.org/foo.html".parse::<Uri>().unwrap();
+    assert_eq!(uri.default_port(), Some(80u16));
+}
 
 #[test]
 fn path_without_leading() {

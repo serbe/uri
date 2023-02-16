@@ -18,7 +18,6 @@ pub mod error;
 pub mod into_uri;
 pub mod parser;
 pub mod range;
-// pub mod scheme;
 pub mod uri;
 pub mod utils;
 

@@ -10,5 +10,5 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 base64 = "0.21"
-percent-encoding = "2.1"
+percent-encoding = "2.2"
 thiserror = "1.0"
