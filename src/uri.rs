@@ -256,7 +256,7 @@ impl Uri {
         self.socket_addrs()?
             .first()
             .cloned()
-            .map_or(Err(Error::SocketAddr), Ok)
+            .ok_or(Error::SocketAddr)
     }
 
     pub fn is_ssl(&self) -> bool {

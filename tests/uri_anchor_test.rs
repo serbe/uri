@@ -74,11 +74,11 @@ fn test_8() {
     assert_eq!(&uri.normalize(), expect_uri);
 }
 
-// // Extra white space characters
-// #[test]
-// fn test_9() {
-//     let input = r#"http://www.example.com/#a\u000Ab\u000Dc\u0009d"#;
-//     let uri: Uri = Uri::try_from(input).unwrap();
-//     let expect_uri = "http://www.example.com/#abcd";
-//     assert_eq!(&uri.normalize(), expect_uri);
-// }
+// Extra white space characters
+#[test]
+fn test_9() {
+    let input = r#"http://www.example.com/#a\u000Ab\u000Dc\u0009d"#;
+    let uri: Uri = Uri::try_from(input).unwrap();
+    let expect_uri = "http://www.example.com/#abcd";
+    assert_eq!(&uri.normalize(), expect_uri);
+}

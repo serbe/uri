@@ -31,7 +31,7 @@ pub(crate) fn check_ups(input: &str, colon: bool, err: Error) -> Result<(), Erro
     }
 }
 
-/// scheme      = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
+/// scheme = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
 pub(crate) fn is_valid_scheme(input: &str) -> bool {
     input[0..1].chars().all(|ch| ch.is_alphabetic())
         && input[1..]
